@@ -1,0 +1,4 @@
+.git
+.dockerignore
+**/.DS_Store
+**/Thumbs.db

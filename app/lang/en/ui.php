@@ -1,0 +1,41 @@
+<?php
+return array(
+	'home' => 'Home',
+	'login' => 'Login',
+	'signup' => 'Sign Up',
+	'logout' => 'Logout',
+	'profile' => 'Profile',
+	'payments' => 'Payments',
+	'my_trips' => 'My :tripPlural',
+	'request_trip' => 'Request :trip',
+	'documents' => 'Documents',
+	'ongoing_trips' => 'On Going :tripPlural',
+	'calendar' => 'Calendar',
+	'language' => 'Language'
+	,'sign_in_now' => 'Sign in now'
+	,'register' => 'Register'
+	,'email_address' => 'Email Address'
+	,'password' => 'Password'
+	,'forgot_password' => 'Forgot Password?'
+	,'dont_have_account' => "Don't have an account yet?"
+	,'create_account' => 'Create an account'
+	,'already_have_account' => 'Do you have an account already?'
+	,'sign_in' => 'Sign in'
+	,'first_name' => 'First Name'
+	,'last_name' => 'Last Name'
+	,'mobile_number' => 'Mobile Number'
+	,'referral_code' => 'Referral Code'
+	,'forgot_password_help' => 'Enter your e-mail address below to reset your password.'
+	,'cancel' => 'Cancel'
+	,'submit' => 'Submit'
+	,'show_password' => 'Show password'
+	,'hide_password' => 'Hide password'
+	,'tour_user_login_title' => 'Sign in as a User'
+	,'tour_user_login_content' => 'Enter your login credentials and click Sign in.'
+	,'tour_provider_login_title' => 'Sign in as a Provider'
+	,'tour_provider_login_content' => 'Enter your login credentials and click Sign in.'
+	,'tour_user_signup_title' => 'Sign up as a new User'
+	,'tour_user_signup_content' => 'Fill in your details and click Register.'
+	,'tour_provider_signup_title' => 'Sign up as a new :provider'
+	,'tour_provider_signup_content' => 'Fill in your details and click Register.'
+);

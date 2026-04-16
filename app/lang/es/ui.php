@@ -1,0 +1,41 @@
+<?php
+return array(
+	'home' => 'Inicio',
+	'login' => 'Iniciar sesion',
+	'signup' => 'Registrarse',
+	'logout' => 'Salir',
+	'profile' => 'Perfil',
+	'payments' => 'Pagos',
+	'my_trips' => 'Mis :tripPlural',
+	'request_trip' => 'Solicitar :trip',
+	'documents' => 'Documentos',
+	'ongoing_trips' => ':tripPlural en curso',
+	'calendar' => 'Calendario',
+	'language' => 'Idioma'
+	,'sign_in_now' => 'Iniciar ahora'
+	,'register' => 'Registrarse'
+	,'email_address' => 'Correo'
+	,'password' => 'Contrasena'
+	,'forgot_password' => 'Olvido su contrasena?'
+	,'dont_have_account' => 'Aun no tienes cuenta?'
+	,'create_account' => 'Crear cuenta'
+	,'already_have_account' => 'Ya tienes cuenta?'
+	,'sign_in' => 'Iniciar sesion'
+	,'first_name' => 'Nombre'
+	,'last_name' => 'Apellido'
+	,'mobile_number' => 'Movil'
+	,'referral_code' => 'Codigo de referido'
+	,'forgot_password_help' => 'Introduzca su correo para restablecer la contrasena.'
+	,'cancel' => 'Cancelar'
+	,'submit' => 'Enviar'
+	,'show_password' => 'Mostrar contrasena'
+	,'hide_password' => 'Ocultar contrasena'
+	,'tour_user_login_title' => 'Iniciar sesion como usuario'
+	,'tour_user_login_content' => 'Introduzca correo y contrasena y pulse Iniciar sesion.'
+	,'tour_provider_login_title' => 'Iniciar sesion como conductor'
+	,'tour_provider_login_content' => 'Introduzca correo y contrasena y pulse Iniciar sesion.'
+	,'tour_user_signup_title' => 'Registro de nuevo usuario'
+	,'tour_user_signup_content' => 'Complete los datos y pulse Registrarse.'
+	,'tour_provider_signup_title' => 'Registro de nuevo :provider'
+	,'tour_provider_signup_content' => 'Complete los datos y pulse Registrarse.'
+);

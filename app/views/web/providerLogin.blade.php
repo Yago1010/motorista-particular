@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="{{ App::getLocale() }}">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="Dashboard">
+    <meta name="keyword" content="Dashboard, Bootstrap, Admin, Template, Theme, Responsive, Fluid, Retina">
+
+
+    <title>{{Config::get('app.website_title')}}</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="{{asset('/web/css/bootstrap.css')}}" rel="stylesheet">
+    <!--external css-->
+    <link href="{{asset('/web/font-awesome/css/font-awesome.css')}}" rel="stylesheet" />
+        
+    <!-- Custom styles for this template -->
+    <link href="{{asset('/web/css/style.css')}}" rel="stylesheet">
+    <link href="{{asset('/web/css/style-responsive.css')}}" rel="stylesheet">
+
+    <style>
+      .password-toggle-wrap { position: relative; }
+      .password-toggle-wrap .form-control { padding-right: 42px; }
+      .password-toggle-wrap .password-toggle-btn {
+        position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+        border: 0; background: transparent; color: #797979; padding: 6px 10px; cursor: pointer; line-height: 1;
+      }
+      .password-toggle-wrap .password-toggle-btn:hover { color: #428bca; }
+    </style>
+
+    <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    <?php 
+          $theme = Theme::all();
+         $active='#000066';
+         $logo = '/image/logo.png';
+         $favicon='/image/favicon.ico';
+         foreach($theme as $themes) {
+            $logo = '/uploads/'.$themes->logo; 
+            $favicon = '/uploads/'.$themes->favicon;
+                    }
+        if($logo=='/uploads/')
+        {
+         $logo = '/image/logo.png';
+        }
+        if($favicon=='/uploads/')
+        {
+            $favicon='/image/favicon.ico';
+        }?>
+
+    <link rel="icon" type="image/ico" href="{{asset('<?php echo $favicon;?>')}}">
+
+    <!-- Bootstrap core CSS -->
+    <link href="{{asset('/web/css/bootstrap.css')}}" rel="stylesheet">
+    <!--external css-->
+    <link href="{{asset('/web/font-awesome/css/font-awesome.css')}}" rel="stylesheet" />
+        
+    <!-- Custom styles for this template -->
+    <link href="{{asset('web/css/style.css')}}" rel="stylesheet">
+    <link href="{{asset('/web/css/style-responsive.css')}}" rel="stylesheet">
+
+    <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+     </head>
+
+  <body>
+    <div style="position:fixed; top:12px; right:12px; z-index:9999;">@include('partials.language-switcher')</div>
+
+      <!-- **********************************************************************************************************************************************************
+      MAIN CONTENT
+      *********************************************************************************************************************************************************** -->
+
+      <div id="login-page">
+        <div class="container">
+          
+            <a href="/"><img class="imghome" src="<?php echo web_url(); ?><?php echo $logo;?>" alt=""></a>
+              <form class="form-login" action="{{ URL::Route('ProviderVerify') }}" method="post">
+                <h2 class="form-login-heading">{{ trans('ui.sign_in_now') }}</h2>
+                <div class="login-wrap">
+                    <input type="text" name="email" class="form-control" value=""  placeholder="{{ trans('ui.email_address') }}" autofocus>
+                    <br>
+                    <div class="password-toggle-wrap">
+                      <input type="password" name="password" id="provider-login-password" class="form-control" value="" placeholder="{{ trans('ui.password') }}" autocomplete="current-password">
+                      <button type="button" class="password-toggle-btn" aria-label="{{ trans('ui.show_password') }}" data-label-show="{{ trans('ui.show_password') }}" data-label-hide="{{ trans('ui.hide_password') }}">
+                        <i class="fa fa-eye"></i>
+                      </button>
+                    </div>
+                    <label class="checkbox">
+                        <span class="pull-right">
+                            <a data-toggle="modal" href="login.html#myModal"> {{ trans('ui.forgot_password') }}</a>
+
+                        </span>
+                    </label>
+
+                    @if(Session::has('error'))
+                        <div class="alert alert-danger">
+                            <b>{{ Session::get('error') }}</b> 
+                        </div>
+                    @endif
+                    @if(Session::has('success'))
+                        <div class="alert alert-success">
+                            <b>{{ Session::get('success') }}</b> 
+                        </div>
+                    @endif
+                    @if(isset($error))
+                        <div class="alert alert-danger">
+                            <b>{{ $error }}</b> 
+                        </div>
+                    @endif
+                    @if(isset($success))
+                        <div class="alert alert-success">
+                            <b>{{ $success }}</b> 
+                        </div>
+                    @endif
+
+
+                    <button class="btn btn-theme btn-block" type="submit" id="provider-signin"><i class="fa fa-lock"></i> {{ strtoupper(trans('ui.sign_in')) }}</button>
+
+                    <hr>
+                    <!--
+                    <div class="login-social-link centered">
+                    <p>or you can sign in via your social network</p>
+                        <button class="btn btn-facebook" type="submit"><i class="fa fa-facebook"></i> Facebook</button>
+                        <button class="btn btn-twitter" type="submit"><i class="fa fa-twitter"></i> Twitter</button>
+                    </div>
+                    -->
+                    <div class="registration">
+                        {{ trans('ui.dont_have_account') }}<br/>
+                        <a class="" href="{{ URL::Route('ProviderSignup') }}">
+                            {{ trans('ui.create_account') }}
+                        </a>
+                    </div>
+        
+                </div>
+              </form>
+        
+                  <!-- Modal -->
+                  <div aria-hidden="true" aria-labelledby="myModalLabel" role="dialog" tabindex="-1" id="myModal" class="modal fade">
+                      <div class="modal-dialog">
+                          <div class="modal-content">
+                              <div class="modal-header">
+                                  <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                                  <h4 class="modal-title">{{ trans('ui.forgot_password') }}</h4>
+                              </div>
+                              <form method="POST" action="{{ URL::Route('providerForgotPassword') }}">
+                              <div class="modal-body">
+                                  <p>{{ trans('ui.forgot_password_help') }}</p>
+                                  <input type="text" name="email" placeholder="{{ trans('ui.email_address') }}" autocomplete="off" class="form-control placeholder-no-fix">
+
+                              </div>
+                              <div class="modal-footer">
+                                  <button data-dismiss="modal" class="btn btn-default" type="button">{{ trans('ui.cancel') }}</button>
+                                  <button class="btn btn-theme" type="submit">{{ trans('ui.submit') }}</button>
+                              </div>
+                              </form>
+                          </div>
+                      </div>
+                  </div>
+                  <!-- modal -->
+        
+                  
+        
+        </div>
+      </div>
+
+    <!-- js placed at the end of the document so the pages load faster -->
+    <script src="<?php echo asset_url(); ?>/web/js/jquery.js"></script>
+    <script src="<?php echo asset_url(); ?>/web/js/bootstrap.min.js"></script>
+
+    <!--BACKSTRETCH-->
+    <!-- You can use an image of whatever size. This script will stretch to fit in any screen size.-->
+    <script type="text/javascript" src="<?php echo asset_url(); ?>/web/js/jquery.backstretch.min.js"></script>
+    <script>
+        $.backstretch("<?php echo asset_url(); ?>/web/img/login-bg.jpg", {speed: 500});
+    </script>
+
+    <script src="<?php echo asset_url(); ?>/web/js/bootstrap-tour.js"></script>
+    <script type="text/javascript">
+      var tour = new Tour(
+        {
+          name: "providerappLogin",
+        });
+
+        // Add your steps. Not too many, you don't really want to get your users sleepy
+        tour.addSteps([
+          {
+            element: "#provider-signin", 
+            title: {!! json_encode(trans('ui.tour_provider_login_title')) !!}, 
+            content: {!! json_encode(trans('ui.tour_provider_login_content')) !!},
+             
+          },
+       ]);
+
+     // Initialize the tour
+     tour.init();
+
+     // Start the tour
+     tour.start();
+  </script>
+    <script>
+      $(document).on('click', '.password-toggle-btn', function(e) {
+        e.preventDefault();
+        var $btn = $(this);
+        var $input = $btn.closest('.password-toggle-wrap').find('input').first();
+        var $icon = $btn.find('i');
+        var showL = $btn.data('label-show');
+        var hideL = $btn.data('label-hide');
+        if ($input.attr('type') === 'password') {
+          $input.attr('type', 'text');
+          $icon.removeClass('fa-eye').addClass('fa-eye-slash');
+          $btn.attr('aria-label', hideL);
+        } else {
+          $input.attr('type', 'password');
+          $icon.removeClass('fa-eye-slash').addClass('fa-eye');
+          $btn.attr('aria-label', showL);
+        }
+      });
+    </script>
+
+  </body>
+</html>

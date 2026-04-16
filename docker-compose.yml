@@ -1,0 +1,44 @@
+services:
+  web:
+    build: .
+    ports:
+      - "8080:80"
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_DATABASE: uberx
+      DB_USERNAME: uberx
+      DB_PASSWORD: uberx_local
+      APP_URL: http://localhost:8080
+      APP_DEBUG: "true"
+
+  db:
+    image: mysql:5.7
+    platform: linux/amd64
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: rootlocal
+      MYSQL_DATABASE: uberx
+      MYSQL_USER: uberx
+      MYSQL_PASSWORD: uberx_local
+    volumes:
+      - uberx_mysql_data:/var/lib/mysql
+      - ./uberx.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    command: >
+      --sql-mode=ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION
+      --character-set-server=utf8
+      --collation-server=utf8_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-prootlocal"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 40s
+
+volumes:
+  uberx_mysql_data:

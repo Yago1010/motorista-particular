@@ -1,0 +1,9 @@
+/vendor/
+/node_modules/
+/.env
+/.env.*
+!.env.example
+/.tmp_locale_cookie.txt
+*.log
+.DS_Store
+Thumbs.db

@@ -1,0 +1,41 @@
+<?php
+return array(
+	'home' => 'Inicio',
+	'login' => 'Entrar',
+	'signup' => 'Cadastrar',
+	'logout' => 'Sair',
+	'profile' => 'Perfil',
+	'payments' => 'Pagamentos',
+	'my_trips' => 'Meus :tripPlural',
+	'request_trip' => 'Solicitar :trip',
+	'documents' => 'Documentos',
+	'ongoing_trips' => ':tripPlural em andamento',
+	'calendar' => 'Calendario',
+	'language' => 'Idioma'
+	,'sign_in_now' => 'Entrar agora'
+	,'register' => 'Cadastrar'
+	,'email_address' => 'E-mail'
+	,'password' => 'Senha'
+	,'forgot_password' => 'Esqueceu a senha?'
+	,'dont_have_account' => 'Ainda nao tem conta?'
+	,'create_account' => 'Criar conta'
+	,'already_have_account' => 'Voce ja tem conta?'
+	,'sign_in' => 'Entrar'
+	,'first_name' => 'Nome'
+	,'last_name' => 'Sobrenome'
+	,'mobile_number' => 'Celular'
+	,'referral_code' => 'Codigo de indicacao'
+	,'forgot_password_help' => 'Digite seu e-mail abaixo para redefinir a senha.'
+	,'cancel' => 'Cancelar'
+	,'submit' => 'Enviar'
+	,'show_password' => 'Mostrar senha'
+	,'hide_password' => 'Ocultar senha'
+	,'tour_user_login_title' => 'Entrar como passageiro'
+	,'tour_user_login_content' => 'Informe e-mail e senha e clique em Entrar.'
+	,'tour_provider_login_title' => 'Entrar como motorista'
+	,'tour_provider_login_content' => 'Informe e-mail e senha e clique em Entrar.'
+	,'tour_user_signup_title' => 'Cadastro de novo passageiro'
+	,'tour_user_signup_content' => 'Preencha os dados e clique em Cadastrar.'
+	,'tour_provider_signup_title' => 'Cadastro de novo :provider'
+	,'tour_provider_signup_content' => 'Preencha os dados e clique em Cadastrar.'
+);
