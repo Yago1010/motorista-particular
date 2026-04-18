@@ -2,6 +2,71 @@
 
 // My common functions
 
+/**
+ * Logo pública da marca. Se app.use_theme_upload_logo for false, ignora o logo guardado no tema (uploads).
+ */
+function app_brand_logo()
+{
+	if ( ! Config::get('app.use_theme_upload_logo', false)) {
+		return Config::get('app.default_logo');
+	}
+	if (Config::get('database.connections.mysql.database') === '' || Config::get('database.connections.mysql.database') === null) {
+		return Config::get('app.default_logo');
+	}
+	try {
+		$logo = Config::get('app.default_logo');
+		foreach (Theme::all() as $themes) {
+			$logo = '/uploads/'.$themes->logo;
+		}
+		if ($logo === '/uploads/' || $logo === '/uploads') {
+			$logo = Config::get('app.default_logo');
+		}
+		return $logo;
+	} catch (Exception $e) {
+		return Config::get('app.default_logo');
+	}
+}
+
+function app_brand_favicon()
+{
+	if ( ! Config::get('app.use_theme_upload_logo', false)) {
+		return '/image/favicon.ico';
+	}
+	if (Config::get('database.connections.mysql.database') === '' || Config::get('database.connections.mysql.database') === null) {
+		return '/image/favicon.ico';
+	}
+	try {
+		$favicon = '/image/favicon.ico';
+		foreach (Theme::all() as $themes) {
+			$favicon = '/uploads/'.$themes->favicon;
+		}
+		if ($favicon === '/uploads/' || $favicon === '/uploads') {
+			$favicon = '/image/favicon.ico';
+		}
+		return $favicon;
+	} catch (Exception $e) {
+		return '/image/favicon.ico';
+	}
+}
+
+/** Cor de destaque do tema (admin), lida da BD quando existir. */
+function app_theme_active_color()
+{
+	$active = '#000066';
+	if (Config::get('database.connections.mysql.database') === '' || Config::get('database.connections.mysql.database') === null) {
+		return $active;
+	}
+	try {
+		foreach (Theme::all() as $themes) {
+			if (isset($themes->active_color) && $themes->active_color) {
+				$active = $themes->active_color;
+			}
+		}
+	} catch (Exception $e) {
+	}
+	return $active;
+}
+
 function get_user_time($remote_tz, $origin_tz = null, $time){
         if ($origin_tz === null) {
             if (!is_string($origin_tz = date_default_timezone_get())) {

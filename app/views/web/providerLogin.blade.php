@@ -19,40 +19,17 @@
     <link href="{{asset('/web/css/style.css')}}" rel="stylesheet">
     <link href="{{asset('/web/css/style-responsive.css')}}" rel="stylesheet">
 
-    <style>
-      .password-toggle-wrap { position: relative; }
-      .password-toggle-wrap .form-control { padding-right: 42px; }
-      .password-toggle-wrap .password-toggle-btn {
-        position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
-        border: 0; background: transparent; color: #797979; padding: 6px 10px; cursor: pointer; line-height: 1;
-      }
-      .password-toggle-wrap .password-toggle-btn:hover { color: #428bca; }
-    </style>
-
     <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
     <!--[if lt IE 9]>
       <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
       <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
     <![endif]-->
     <?php 
-          $theme = Theme::all();
-         $active='#000066';
-         $logo = '/image/logo.png';
-         $favicon='/image/favicon.ico';
-         foreach($theme as $themes) {
-            $logo = '/uploads/'.$themes->logo; 
-            $favicon = '/uploads/'.$themes->favicon;
-                    }
-        if($logo=='/uploads/')
-        {
-         $logo = '/image/logo.png';
-        }
-        if($favicon=='/uploads/')
-        {
-            $favicon='/image/favicon.ico';
-        }?>
+         $logo = app_brand_logo();
+         $favicon = app_brand_favicon();
+        ?>
 
-    <link rel="icon" type="image/ico" href="{{asset('<?php echo $favicon;?>')}}">
+    <link rel="icon" type="image/ico" href="<?php echo asset_url(); ?><?php echo $favicon;?>">
 
     <!-- Bootstrap core CSS -->
     <link href="{{asset('/web/css/bootstrap.css')}}" rel="stylesheet">
@@ -62,6 +39,8 @@
     <!-- Custom styles for this template -->
     <link href="{{asset('web/css/style.css')}}" rel="stylesheet">
     <link href="{{asset('/web/css/style-responsive.css')}}" rel="stylesheet">
+    <link href="{{ asset('web/css/chama-brand.css') }}" rel="stylesheet">
+    <link href="<?php echo asset_url(); ?>/web/css/password-toggle.css" rel="stylesheet">
 
     <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
     <!--[if lt IE 9]>
@@ -70,7 +49,7 @@
     <![endif]-->
      </head>
 
-  <body>
+  <body class="chama-web">
     <div style="position:fixed; top:12px; right:12px; z-index:9999;">@include('partials.language-switcher')</div>
 
       <!-- **********************************************************************************************************************************************************
@@ -204,25 +183,7 @@
      // Start the tour
      tour.start();
   </script>
-    <script>
-      $(document).on('click', '.password-toggle-btn', function(e) {
-        e.preventDefault();
-        var $btn = $(this);
-        var $input = $btn.closest('.password-toggle-wrap').find('input').first();
-        var $icon = $btn.find('i');
-        var showL = $btn.data('label-show');
-        var hideL = $btn.data('label-hide');
-        if ($input.attr('type') === 'password') {
-          $input.attr('type', 'text');
-          $icon.removeClass('fa-eye').addClass('fa-eye-slash');
-          $btn.attr('aria-label', hideL);
-        } else {
-          $input.attr('type', 'password');
-          $icon.removeClass('fa-eye-slash').addClass('fa-eye');
-          $btn.attr('aria-label', showL);
-        }
-      });
-    </script>
+    <script src="<?php echo asset_url(); ?>/web/js/password-toggle.js" type="text/javascript"></script>
 
   </body>
 </html>

@@ -1,0 +1,12 @@
+/* Tokens alinhados a web/css/chama-brand.css */
+
+:root {
+  --chama-bg: #0a0c0b;
+  --chama-neon: #39ff6a;
+  --chama-neon-dark: #148040;
+  --chama-gold: #e8c547;
+  --chama-panel: #141a17;
+  --chama-text: #e4ebe8;
+  --chama-muted: #8fa39a;
+  --chama-danger: #f87171;
+}

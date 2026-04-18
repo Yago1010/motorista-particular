@@ -7,31 +7,12 @@
 <!--<![endif]-->
 
 <head>
-    <?php   if(Config::get("database.connections.mysql.database") != "")
-            {
-             $theme = Theme::all();
-            $logo = '/image/logo.png';
-            $favicon='/image/favicon.ico';
-         
-         foreach($theme as $themes) {
-            $logo = '/uploads/'.$themes->logo; 
-            $favicon = '/uploads/'.$themes->favicon;
-           }
-        if($logo=='/uploads/')
-        {
-         $logo = '/image/logo.png';
-        }
-        if($favicon=='/uploads/')
-        {
-            $favicon='/image/favicon.ico';
-        }    
-        }else{
-            $logo = '/image/logo.png';
-            $favicon='/image/favicon.ico';
-        }
+    <?php
+        $logo = app_brand_logo();
+        $favicon = app_brand_favicon();
         ?>
     <meta charset="UTF-8">
-    <title>Taxi Now</title>
+    <title>{{ Config::get('app.website_title') }}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
     <link rel="shortcut icon" href="favicon.ico">
@@ -45,6 +26,7 @@
     <link rel="stylesheet" href="<?php echo asset_url(); ?>/website/css/owl.carousel.css">
     <link rel="stylesheet" href="<?php echo asset_url(); ?>/website/css/owl.theme.css">
     <link rel="stylesheet" href="<?php echo asset_url(); ?>/website/css/styles.css">
+    <link rel="stylesheet" href="<?php echo asset_url(); ?>/website/css/chama-brand.css">
     <script src="<?php echo asset_url(); ?>/website/js/modernizr.custom.32033.js"></script>
 
     <!--[if IE]><script type="text/javascript" src="js/excanvas.compiled.js"></script><![endif]-->
@@ -58,11 +40,11 @@
 
 </head>
 
-<body>
+<body class="chama-landing">
 
     <div class="pre-loader">
         <div class="load-con">
-            <img src="<?php echo asset_url()?><?php echo $logo;?>" class="animated fadeInDown" alt="" width="200">
+            <img src="<?php echo asset_url()?><?php echo $logo;?>" class="animated fadeInDown" alt="Chama no 12">
             <div class="spinner">
               <div class="bounce1"></div>
               <div class="bounce2"></div>
@@ -78,8 +60,8 @@
             <div class="slider-container" id="slider">
                 <div class="container">
                     <div class="row mh-container">
-                        <h1><span>Taxi </span> Now</h1>
-                        <h3>Pick Your Taxi Now</h3>
+                        <h1>Chama <span>no 12</span></h1>
+                        <h3>O teu táxi, quando precisas</h3>
                      <div class="col-md-2 col-sm-4 col-xs-6" style="margin:0 auto;float:none;">
                             <div class="btn-group btn-group-justified btn-lg small">
                                 <div class="btn-group text-right">
@@ -171,7 +153,7 @@
                 <div class="row">
                 <div class="col-md-8 col-md-push-2 clearfix">
                 <div class="section-heading scrollpoint sp-effect3">
-                <h3>Taxi Now<span> Sign In</span></h3>
+                <h3>Chama no 12<span> Entrar</span></h3>
                 <span class="divider"></span>
                 </div>
                 </div>
@@ -191,9 +173,9 @@
                 <div class="row">
                     <div class="col-md-8 col-md-push-2 clearfix">
                         <div class="section-heading scrollpoint sp-effect3">
-                            <h3>Taxi Now<span> Features</span></h3>
+                            <h3>Chama no 12<span> Funcionalidades</span></h3>
                             <span class="divider"></span>
-                            <p>Explore the latest trends with the taxi now features.</p>
+                            <p>Pedido de viagem, motoristas e pagamentos num só lugar.</p>
                         </div>
                     </div>
                     <div class="col-md-12">

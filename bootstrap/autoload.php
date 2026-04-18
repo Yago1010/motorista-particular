@@ -21,6 +21,8 @@ if (PHP_VERSION_ID >= 80000)
 
 require __DIR__.'/../vendor/autoload.php';
 
+require __DIR__.'/ensure-local-db-env.php';
+
 /*
 |--------------------------------------------------------------------------
 | Include The Compiled Class File

@@ -248,7 +248,7 @@ class AdminController extends BaseController
 			$walkers = Walker::paginate(10);
 			$owners = Owner::paginate(10);
 			return View::make('dashboard')
-				->with('title', 'Dashboard')
+				->with('title', Lang::get('admin.menu_dashboard'))
 				->with('page', 'dashboard')
 				->with('walks', $walks)
 				->with('owners', $owners)
@@ -1052,7 +1052,7 @@ class AdminController extends BaseController
 		$owners = Owner::paginate(10);
 
 		return View::make('owners')
-			->with('title', 'Owners')
+			->with('title', Lang::get('admin.page_owners'))
 			->with('page', 'owners')
 			->with('owners', $owners);
 	}
@@ -1073,7 +1073,7 @@ class AdminController extends BaseController
 			$owners = Owner::where('address', 'like', '%' . $valu . '%')->orWhere('state', 'like', '%' . $valu . '%')->orWhere('country', 'like', '%' . $valu . '%')->paginate(10);
 		}
 		return View::make('owners')
-			->with('title', 'Owners | Search Result')
+			->with('title', Lang::get('admin.page_owners_search'))
 			->with('page', 'owners')
 			->with('owners', $owners);
 	}
@@ -1260,7 +1260,7 @@ class AdminController extends BaseController
 				->paginate(10);
 
 			return View::make('owners')
-				->with('title', 'Users')
+				->with('title', Lang::get('admin.page_owners'))
 				->with('page', 'owners')
 				->with('owners', $owners);
 		} else {
@@ -1295,13 +1295,15 @@ class AdminController extends BaseController
 			return Redirect::to('/admin/login');
 		} else {
 			if (Auth::attempt(array('username' => $username, 'password' => $password))) {
+				$admin = Admin::where('username', 'like', '%' . $username . '%')->first();
+				if ($admin) {
+					Session::put('admin_id', $admin->id);
+				}
 				if (Session::has('pre_admin_login_url')) {
 					$url = Session::get('pre_admin_login_url');
 					Session::forget('pre_admin_login_url');
 					return Redirect::to($url);
 				} else {
-					$admin = Admin::where('username','like', '%' . $username . '%')->first();
-					Session::put('admin_id', $admin->id);
 					return Redirect::to('/admin/report')->with('notify', 'installation Notification');
 				}
 			} else {
@@ -1314,12 +1316,23 @@ class AdminController extends BaseController
 	public function login()
 	{
 		$error = Input::get('error');
-		if (Admin::count()) {
-
-			return View::make('login')->with('title', 'Login')->with('button', 'Login')->with('error', $error);
-		} else {
-			return View::make('login')->with('title', 'Create Admin')->with('button', 'Create')->with('error', $error);
+		try
+		{
+			$hasAdmin = Admin::count() > 0;
 		}
+		catch (Exception $e)
+		{
+			return View::make('login')
+				->with('title', Lang::get('admin.login_page_title'))
+				->with('button', Lang::get('admin.login_button'))
+				->with('error', 'db');
+		}
+		if ($hasAdmin)
+		{
+			return View::make('login')->with('title', Lang::get('admin.login_page_title'))->with('button', Lang::get('admin.login_button'))->with('error', $error);
+		}
+
+		return View::make('login')->with('title', Lang::get('admin.create_admin_title'))->with('button', Lang::get('admin.create_admin_button'))->with('error', $error);
 	}
 
 	public function edit_walker()
@@ -2611,18 +2624,24 @@ class AdminController extends BaseController
 		$type = $_GET['type'];
 		Session::put('valu', $valu);
 		Session::put('type', $type);
+		$fieldKeys = array(
+			'userid' => 'admin.sort_field_userid',
+			'username' => 'admin.sort_field_username',
+			'useremail' => 'admin.sort_field_useremail',
+		);
+		$fieldLabel = isset($fieldKeys[$type]) ? Lang::get($fieldKeys[$type]) : $type;
+		$orderLabel = ($valu === 'asc') ? Lang::get('admin.ascending') : Lang::get('admin.descending');
 		if ($type == 'userid') {
-			$typename = "Owner ID";
 			$users = Owner::orderBy('id', $valu)->paginate(10);
 		} elseif ($type == 'username') {
-			$typename = "Owner Name";
 			$users = Owner::orderBy('first_name', $valu)->paginate(10);
 		} elseif ($type == 'useremail') {
-			$typename = "Owner Email";
 			$users = Owner::orderBy('email', $valu)->paginate(10);
+		} else {
+			$users = Owner::paginate(10);
 		}
 		return View::make('owners')
-			->with('title', 'Owners | Sorted by ' . $typename . ' in ' . $valu)
+			->with('title', Lang::get('admin.page_owners_sorted', array('field' => $fieldLabel, 'order' => $orderLabel)))
 			->with('page', 'owners')
 			->with('owners', $users);
 	}

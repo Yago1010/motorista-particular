@@ -14,9 +14,15 @@
 Route::get('/test', 'HelloController@test');
 
 Route::get('/language/{locale}', function($locale) {
+	$aliases = array(
+		'pt_BR' => 'pt',
+		'pt-br' => 'pt',
+		'PT_BR' => 'pt',
+	);
+	$normalized = isset($aliases[$locale]) ? $aliases[$locale] : $locale;
 	$allowedLocales = array('en', 'pt', 'es');
-	if (in_array($locale, $allowedLocales)) {
-		Session::put('locale', $locale);
+	if (in_array($normalized, $allowedLocales)) {
+		Session::put('locale', $normalized);
 	}
 	$redirectTo = Request::server('HTTP_REFERER');
 	if (!$redirectTo) {

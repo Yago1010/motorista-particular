@@ -34,21 +34,8 @@ class WebController extends \BaseController {
 
 	public function termsncondition()
 	{
-		$theme = Theme::all();
-		$logo = '/image/logo.png';
-		$favicon='/image/favicon.ico';
-		foreach($theme as $themes) {
-			$favicon = '/uploads/'.$themes->favicon;
-			$logo= '/uploads/'.$themes->logo;
-		}
-		if($logo=='/uploads/')
-		{
-			$logo = '/image/logo.png';
-		}
-		if($favicon=='/uploads/')
-		{
-			$favicon='/image/favicon.ico';
-		}
+		$logo = app_brand_logo();
+		$favicon = app_brand_favicon();
 		$app_name = Config::get('app.website_title');
 		return View::make('website.termsandconditions')
 						->with('title','Terms and Conditions')
@@ -62,21 +49,8 @@ class WebController extends \BaseController {
 		$id = Request::segment(2);
 		$provider = Walker::where('id',$id)->first();
 
-		$theme = Theme::all();
-		$logo = '/image/logo.png';
-		$favicon='/image/favicon.ico';
-		foreach($theme as $themes) {
-			$favicon = '/uploads/'.$themes->favicon;
-			$logo= '/uploads/'.$themes->logo;
-		}
-		if($logo=='/uploads/')
-		{
-			$logo = '/image/logo.png';
-		}
-		if($favicon=='/uploads/')
-		{
-			$favicon='/image/favicon.ico';
-		}
+		$logo = app_brand_logo();
+		$favicon = app_brand_favicon();
 		$provider_first_name = $provider->first_name;
 		$provider_last_name = $provider->last_name;
 		$provider_email = $provider->email;
@@ -197,21 +171,8 @@ class WebController extends \BaseController {
 	public function page($title)
 	{	
 
-		$theme = Theme::all();
-		$logo = '/image/logo.png';
-		$favicon='/image/favicon.ico';
-		foreach($theme as $themes) {
-			$favicon = '/uploads/'.$themes->favicon;
-			$logo= '/uploads/'.$themes->logo;
-		}
-		if($logo=='/uploads/')
-		{
-			$logo = '/image/logo.png';
-		}
-		if($favicon=='/uploads/')
-		{
-			$favicon='/image/favicon.ico';
-		}
+		$logo = app_brand_logo();
+		$favicon = app_brand_favicon();
 		$app_name = Config::get('app.website_title');
 		return View::make('website.'.$title)
 						->with('title',$title)
@@ -227,21 +188,8 @@ class WebController extends \BaseController {
 		if($request){
 			$owner = Owner::where('id',$request->owner_id)->first();
 			$user_name = $owner->first_name." ".$owner->last_name;
-			$theme = Theme::all();
-			$logo = '/image/logo.png';
-			$favicon='/image/favicon.ico';
-			foreach($theme as $themes) {
-				$favicon = '/uploads/'.$themes->favicon;
-				$logo= '/uploads/'.$themes->logo;
-			}
-			if($logo=='/uploads/')
-			{
-				$logo = '/image/logo.png';
-			}
-			if($favicon=='/uploads/')
-			{
-				$favicon='/image/favicon.ico';
-			}
+			$logo = app_brand_logo();
+			$favicon = app_brand_favicon();
 			$app_name = Config::get('app.website_title');
 			// walk location
 			$reqloc = WalkLocation::where('request_id',$request->id)->first();
@@ -265,21 +213,8 @@ class WebController extends \BaseController {
 		if($request){
 			$owner = Owner::where('id',$request->owner_id)->first();
 			$user_name = $owner->first_name." ".$owner->last_name;
-			$theme = Theme::all();
-			$logo = '/image/logo.png';
-			$favicon='/image/favicon.ico';
-			foreach($theme as $themes) {
-				$favicon = '/uploads/'.$themes->favicon;
-				$logo= '/uploads/'.$themes->logo;
-			}
-			if($logo=='/uploads/')
-			{
-				$logo = '/image/logo.png';
-			}
-			if($favicon=='/uploads/')
-			{
-				$favicon='/image/favicon.ico';
-			}
+			$logo = app_brand_logo();
+			$favicon = app_brand_favicon();
 			$app_name = Config::get('app.website_title');
 			// walk location
 			$start_loc = WalkLocation::where('request_id', $request->id)->first();

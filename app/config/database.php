@@ -54,10 +54,12 @@ return array(
 
         'mysql' => array(
             'driver'    => 'mysql',
-            'host'      => getenv('DB_HOST') ?: 'localhost',
+            /* Em Windows, 127.0.0.1 evita IPv6 (::1) quando o MySQL só escuta em IPv4. */
+            'host'      => getenv('DB_HOST') ?: '127.0.0.1',
+            'port'      => (getenv('DB_PORT') !== false && getenv('DB_PORT') !== '') ? (int) getenv('DB_PORT') : 3306,
             'database'  => getenv('DB_DATABASE') ?: '',
             'username'  => getenv('DB_USERNAME') ?: '',
-            'password'  => getenv('DB_PASSWORD') ?: '',
+            'password'  => getenv('DB_PASSWORD') !== false ? getenv('DB_PASSWORD') : '',
             'charset'   => 'utf8',
             'collation' => 'utf8_unicode_ci',
             'prefix'    => '',

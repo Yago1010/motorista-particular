@@ -148,11 +148,21 @@
                       </div>
                       <div class="form-group">
                           <label>Old Password</label>
-                          <input class="form-control" type="password" name="old_password" placeholder="Old Password">
+                          <div class="password-toggle-wrap">
+                            <input class="form-control" type="password" name="old_password" id="edit-admin-old-password" placeholder="Old Password" autocomplete="current-password">
+                            <button type="button" class="password-toggle-btn" aria-label="{{ trans('ui.show_password') }}" data-label-show="{{ trans('ui.show_password') }}" data-label-hide="{{ trans('ui.hide_password') }}">
+                              <i class="fa fa-eye"></i>
+                            </button>
+                          </div>
                       </div>
                       <div class="form-group">
                           <label>New Password</label>
-                          <input type="password" class="form-control" name="new_password" placeholder="New Password">
+                          <div class="password-toggle-wrap">
+                            <input type="password" class="form-control" name="new_password" id="edit-admin-new-password" placeholder="New Password" autocomplete="new-password">
+                            <button type="button" class="password-toggle-btn" aria-label="{{ trans('ui.show_password') }}" data-label-show="{{ trans('ui.show_password') }}" data-label-hide="{{ trans('ui.hide_password') }}">
+                              <i class="fa fa-eye"></i>
+                            </button>
+                          </div>
                       </div>
                       <div class="form-group">
                         <label>Address</label><br>

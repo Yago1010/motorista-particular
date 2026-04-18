@@ -1,0 +1,64 @@
+/* Chama no 12 — login admin */
+
+body.login.chama-admin-login {
+  background-image:
+    linear-gradient(165deg, rgba(10, 14, 12, 0.92) 0%, rgba(8, 12, 10, 0.96) 100%),
+    url("../img/bg.jpg");
+  background-size: cover;
+  background-position: center;
+}
+
+body.login.chama-admin-login .logo h2 {
+  color: #e8eef0 !important;
+  text-shadow: 0 0 18px rgba(57, 255, 106, 0.2);
+}
+
+body.login.chama-admin-login .logo img {
+  height: auto !important;
+  max-height: 88px;
+  max-width: 280px;
+  width: auto;
+  filter: drop-shadow(0 0 16px rgba(57, 255, 106, 0.25));
+}
+
+body.login.chama-admin-login .content {
+  background: rgba(18, 24, 21, 0.92);
+  border: 1px solid rgba(57, 255, 106, 0.22);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
+}
+
+body.login.chama-admin-login .content .form-title {
+  color: #c8e8d4 !important;
+}
+
+body.login.chama-admin-login .content .m-wrap {
+  background-color: #0f1513 !important;
+  border: 1px solid rgba(57, 255, 106, 0.2);
+  color: #e8eef0;
+}
+
+body.login.chama-admin-login .btn.blue {
+  background: linear-gradient(180deg, #39ff6a, #148040) !important;
+  border-color: #0d5c2e !important;
+  color: #031105 !important;
+  font-weight: 700;
+}
+
+body.login.chama-admin-login .btn.blue:hover {
+  box-shadow: 0 0 16px rgba(57, 255, 106, 0.4);
+}
+
+/* Campo senha + olho (login admin) */
+body.login.chama-admin-login .input-icon.left .password-toggle-wrap {
+  position: relative;
+  display: block;
+  width: 100%;
+}
+
+body.login.chama-admin-login .password-toggle-wrap .password-toggle-btn {
+  color: #8fa39a;
+}
+
+body.login.chama-admin-login .password-toggle-wrap .password-toggle-btn:hover {
+  color: #39ff6a;
+}

@@ -10,8 +10,8 @@
     <link rel="icon" href="{{ asset_url(); }}/installer/favicon.ico" type="image/x-icon">
     <?php 
          $active='#000066';
-         $logo = '/image/logo.png';
-         $favicon='/image/favicon.ico';
+         $logo = app_brand_logo();
+         $favicon = app_brand_favicon();
     ?>
 
         <link rel="icon" type="image/ico" href="<?php echo asset_url(); ?><?php echo $favicon;?>">
@@ -24,6 +24,8 @@
 
     <!-- Custom styles for this template -->
     <link href="{{ asset_url(); }}/installer/css/jumbotron-narrow.css" rel="stylesheet">
+    <link href="//cdnjs.cloudflare.com/ajax/libs/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet" type="text/css" />
+    <link href="<?php echo asset_url(); ?>/web/css/password-toggle.css" rel="stylesheet" type="text/css" />
 
     <script src="{{ asset_url(); }}/installer/js/ie-emulation-modes-warning.js"></script>
     <script src="{{ asset_url(); }}/installer/js/ie10-viewport-bug-workaround.js"></script>
@@ -35,7 +37,7 @@
 
     <div class="container">
       <div class="header">
-        <h3 class="text-muted"><img src="{{ asset_url(); }}/installer/logo.png" width="75" height="75">&nbsp;&nbsp;Uber For X</h3>
+        <h3 class="text-muted"><img src="<?php echo asset_url(); ?><?php echo $logo; ?>" width="75" height="75" alt="">&nbsp;&nbsp;Uber For X</h3>
       </div>
 
       @yield('content')
@@ -46,6 +48,6 @@
 
     </div> <!-- /container -->
 
- 
+    <script src="<?php echo asset_url(); ?>/web/js/password-toggle.js" type="text/javascript"></script>
 
 </body></html>

@@ -62,14 +62,18 @@
                 if(navigator.geolocation) {
                     navigator.geolocation.getCurrentPosition(function(position) {
         
-                        <?php if(Session::has('admin_id')){ $id = Session::get('admin_id'); $admin = Admin::where('id', $id)->first(); } ?>
-                        <?php if($admin){ $latitude = $admin->latitude; $longitude = $admin->longitude; } ?>
-
-                        <?php if($latitude != 0 && $longitude != 0){ ?>
-                            var pos = new google.maps.LatLng("<?php echo $latitude; ?>",
-                                                                       "<?php echo $longitude; ?>");
+                        <?php
+                        $admin = null;
+                        if (Session::has('admin_id')) {
+                            $admin = Admin::where('id', Session::get('admin_id'))->first();
+                        }
+                        $adminHasMapCoords = $admin && (float) $admin->latitude != 0 && (float) $admin->longitude != 0;
+                        ?>
+                        <?php if ($adminHasMapCoords) { ?>
+                            var pos = new google.maps.LatLng("<?php echo e($admin->latitude); ?>",
+                                                                       "<?php echo e($admin->longitude); ?>");
                                 console.log("admin location");        
-                        <?php }else{ ?>
+                        <?php } else { ?>
                                 var pos = new google.maps.LatLng(position.coords.latitude,
                                                                        position.coords.longitude);
                                  console.log("geo locating");

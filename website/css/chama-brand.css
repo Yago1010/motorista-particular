@@ -1,0 +1,153 @@
+/* Chama no 12 — tema visual alinhado à logo (verde neon, dourado, fundo escuro) */
+
+:root {
+  --chama-bg: #0c0e0d;
+  --chama-bg-soft: #121816;
+  --chama-neon: #39ff6a;
+  --chama-neon-dim: #1fa34a;
+  --chama-gold: #e8c547;
+  --chama-text: #e8eef0;
+  --chama-muted: #8fa39a;
+}
+
+/* Landing (index) */
+.chama-landing #wrap {
+  background: var(--chama-bg);
+}
+
+.chama-landing .pre-loader {
+  background: radial-gradient(ellipse at center, #152018 0%, var(--chama-bg) 65%) !important;
+}
+
+.chama-landing .pre-loader .load-con img {
+  width: auto !important;
+  max-width: min(92vw, 320px);
+  height: auto;
+  max-height: 140px;
+  filter: drop-shadow(0 0 18px rgba(57, 255, 106, 0.35));
+}
+
+.chama-landing .spinner > div {
+  background-color: var(--chama-neon-dim) !important;
+}
+
+.chama-landing #slider .container h1 {
+  color: var(--chama-neon) !important;
+  text-shadow: 0 0 24px rgba(57, 255, 106, 0.25);
+}
+
+.chama-landing #slider .container h1 span {
+  color: var(--chama-gold) !important;
+}
+
+.chama-landing #slider .container h3 {
+  color: var(--chama-muted) !important;
+  font-weight: 600;
+}
+
+.chama-landing #nav {
+  background: rgba(12, 14, 13, 0.94) !important;
+  border-bottom: 1px solid rgba(57, 255, 106, 0.22);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45) !important;
+}
+
+.chama-landing #nav .navbar-nav li a {
+  color: var(--chama-muted) !important;
+}
+
+.chama-landing #nav .navbar-nav li a:hover,
+.chama-landing #nav .navbar-nav li.active a {
+  color: var(--chama-neon) !important;
+  background: transparent !important;
+}
+
+.chama-landing #nav .navbar-toggle i {
+  color: var(--chama-neon);
+}
+
+.chama-landing #nav .navbar-brand img {
+  max-height: 52px;
+  width: auto !important;
+  max-width: 220px !important;
+}
+
+.chama-landing section#signup {
+  background: linear-gradient(160deg, #0f1814 0%, #14221a 45%, #0a100d 100%) !important;
+  border-top: 1px solid rgba(57, 255, 106, 0.2);
+  padding-top: 48px;
+  padding-bottom: 32px;
+}
+
+.chama-landing section#signup .section-heading h3 {
+  color: var(--chama-text);
+}
+
+.chama-landing section#signup .btn-sign-up {
+  border: 2px solid var(--chama-neon);
+  color: var(--chama-neon);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  box-shadow: 0 0 16px rgba(57, 255, 106, 0.12);
+}
+
+.chama-landing section#signup .btn-sign-up:hover {
+  background: var(--chama-neon) !important;
+  color: #061208 !important;
+  box-shadow: 0 0 22px rgba(57, 255, 106, 0.45);
+}
+
+.chama-landing section .section-heading h3,
+.chama-landing section .section-heading p {
+  color: var(--chama-text);
+}
+
+.chama-landing section .divider {
+  background: linear-gradient(90deg, transparent, var(--chama-neon), var(--chama-gold), transparent) !important;
+}
+
+.chama-landing footer {
+  background-color: #070807 !important;
+  color: var(--chama-muted);
+}
+
+/* Páginas secundárias (layout website: user trip, etc.) */
+.chama-site {
+  background: var(--chama-bg);
+  color: var(--chama-text);
+  min-height: 100vh;
+}
+
+.chama-site .trans-blk {
+  color: var(--chama-text);
+}
+
+.chama-site .navbar-default {
+  background: rgba(12, 14, 13, 0.96) !important;
+  border-color: rgba(57, 255, 106, 0.2) !important;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.4);
+}
+
+.chama-site .navbar-default .navbar-brand {
+  color: var(--chama-text) !important;
+}
+
+.chama-site .navbar-default .navbar-nav > li > a {
+  color: var(--chama-muted) !important;
+}
+
+.chama-site .navbar-default .navbar-nav > li > a:hover,
+.chama-site .navbar-default .navbar-nav > .active > a {
+  color: var(--chama-neon) !important;
+  background: transparent !important;
+}
+
+.chama-site .navbar-default .navbar-brand img {
+  max-height: 48px;
+  width: auto !important;
+  max-width: 200px !important;
+  margin-top: 4px;
+}
+
+.chama-site .navbar-default .navbar-toggle .icon-bar {
+  background-color: var(--chama-neon);
+}

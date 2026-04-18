@@ -4,7 +4,7 @@
 <div class="row first-fold">
     <div class="landing">
         <div class="row uber-logo second-uber-logo">
-            <div class="col-md-1 col-xs-12"><img src="<?php echo web_url(); ?>/web/img/logo.png" alt=""></div>
+            <div class="col-md-1 col-xs-12"><img src="<?php echo web_url(); ?><?php echo Config::get('app.default_logo'); ?>" alt=""></div>
             <div class="col-md-5 col-md-offset-6 col-xs-12">
                 <ul class="inline">
                     <li><a href="#">Home</a> | </li>

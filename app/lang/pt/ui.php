@@ -38,4 +38,12 @@ return array(
 	,'tour_user_signup_content' => 'Preencha os dados e clique em Cadastrar.'
 	,'tour_provider_signup_title' => 'Cadastro de novo :provider'
 	,'tour_provider_signup_content' => 'Preencha os dados e clique em Cadastrar.'
+	,'admin_login_welcome' => 'Bem-vindo ao :name'
+	,'admin_login_form_title' => 'Entre na sua conta'
+	,'admin_login_username_label' => 'Utilizador'
+	,'admin_login_password_label' => 'Senha'
+	,'admin_login_username_placeholder' => 'Utilizador ou e-mail'
+	,'admin_login_password_placeholder' => 'Senha'
+	,'admin_login_error_invalid' => 'Utilizador ou senha invalidos.'
+	,'admin_login_error_db' => 'Sem ligacao a base de dados. Inicie MySQL/MariaDB (porta 3306, base uberx) e execute setup-database.ps1.'
 );

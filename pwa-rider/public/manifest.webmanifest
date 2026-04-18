@@ -1,0 +1,24 @@
+{
+  "name": "Chama no 12 - Passageiro",
+  "short_name": "Chama12",
+  "description": "PWA inicial para solicitar corridas.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0c0b",
+  "theme_color": "#0a0c0b",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "/chama-logo.png",
+      "sizes": "734x768",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "48x46",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

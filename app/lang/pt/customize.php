@@ -1,9 +1,9 @@
 <?php
 return array(
 	'Provider' => 'Motorista',
-	'User' => 'Usuario',
-	'Taxi' => 'Taxi',
+	'User' => 'Usuário',
+	'Taxi' => 'Táxi',
 	'Trip' => 'Viagem',
 	'Walk' => 'Corrida',
-	'Request' => 'Solicitacao',
+	'Request' => 'Solicitação',
 );

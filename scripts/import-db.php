@@ -6,6 +6,7 @@
  */
 
 $host = getenv('DB_HOST') ?: '127.0.0.1';
+$port = (getenv('DB_PORT') !== false && getenv('DB_PORT') !== '') ? (int) getenv('DB_PORT') : 3306;
 $user = getenv('DB_USERNAME') ?: 'root';
 $pass = getenv('DB_PASSWORD') !== false ? getenv('DB_PASSWORD') : '';
 $db = getenv('DB_DATABASE') ?: 'uberx';
@@ -23,7 +24,7 @@ if (!extension_loaded('mysqli'))
 	exit(1);
 }
 
-$mysqli = @new mysqli($host, $user, $pass);
+$mysqli = @new mysqli($host, $user, $pass, '', $port);
 if ($mysqli->connect_error)
 {
 	fwrite(STDERR, "Ligação MySQL falhou: ".$mysqli->connect_error."\n");

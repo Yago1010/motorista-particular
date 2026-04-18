@@ -293,19 +293,28 @@
               <div class="form-group">
                   <label class="col-sm-2 col-sm-2 control-label">Current Password</label>
                   <div class="col-sm-6">
-                      <input type="password" class="form-control" name="current_password" value="">
+                      <div class="password-toggle-wrap">
+                        <input type="password" class="form-control" name="current_password" id="provider-profile-current-pw" value="" autocomplete="current-password">
+                        <button type="button" class="password-toggle-btn" aria-label="{{ trans('ui.show_password') }}" data-label-show="{{ trans('ui.show_password') }}" data-label-hide="{{ trans('ui.hide_password') }}"><i class="fa fa-eye"></i></button>
+                      </div>
                   </div>
               </div>
               <div class="form-group">
                   <label class="col-sm-2 col-sm-2 control-label">New Password</label>
                   <div class="col-sm-6">
-                      <input type="password" class="form-control" name="new_password" value="">
+                      <div class="password-toggle-wrap">
+                        <input type="password" class="form-control" name="new_password" id="provider-profile-new-pw" value="" autocomplete="new-password">
+                        <button type="button" class="password-toggle-btn" aria-label="{{ trans('ui.show_password') }}" data-label-show="{{ trans('ui.show_password') }}" data-label-hide="{{ trans('ui.hide_password') }}"><i class="fa fa-eye"></i></button>
+                      </div>
                   </div>
               </div>
               <div class="form-group">
                   <label class="col-sm-2 col-sm-2 control-label">Confirm Password</label>
                   <div class="col-sm-6">
-                      <input type="password" class="form-control" name="confirm_password" value="">
+                      <div class="password-toggle-wrap">
+                        <input type="password" class="form-control" name="confirm_password" id="provider-profile-confirm-pw" value="" autocomplete="new-password">
+                        <button type="button" class="password-toggle-btn" aria-label="{{ trans('ui.show_password') }}" data-label-show="{{ trans('ui.show_password') }}" data-label-hide="{{ trans('ui.hide_password') }}"><i class="fa fa-eye"></i></button>
+                      </div>
                   </div>
               </div>
               <span class="col-sm-2"></span>

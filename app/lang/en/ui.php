@@ -38,4 +38,12 @@ return array(
 	,'tour_user_signup_content' => 'Fill in your details and click Register.'
 	,'tour_provider_signup_title' => 'Sign up as a new :provider'
 	,'tour_provider_signup_content' => 'Fill in your details and click Register.'
+	,'admin_login_welcome' => 'Welcome to :name'
+	,'admin_login_form_title' => 'Sign in to your account'
+	,'admin_login_username_label' => 'Username'
+	,'admin_login_password_label' => 'Password'
+	,'admin_login_username_placeholder' => 'Username or email'
+	,'admin_login_password_placeholder' => 'Password'
+	,'admin_login_error_invalid' => 'Invalid username or password.'
+	,'admin_login_error_db' => 'Cannot connect to the database. Start MySQL (port 3306, database uberx) and run setup-database.ps1.'
 );

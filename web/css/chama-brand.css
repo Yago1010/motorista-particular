@@ -1,0 +1,144 @@
+/* Chama no 12 — login / registo passageiro e motorista */
+
+:root {
+  --chama-bg: #0a0c0b;
+  --chama-neon: #39ff6a;
+  --chama-neon-dark: #148040;
+  --chama-gold: #e8c547;
+  --chama-panel: #141a17;
+  --chama-text: #e4ebe8;
+  --chama-muted: #8fa39a;
+}
+
+body.chama-web {
+  background: radial-gradient(ellipse 120% 80% at 50% 0%, #15221a 0%, var(--chama-bg) 55%) !important;
+  color: var(--chama-text);
+}
+
+body.chama-web #login-page {
+  padding-bottom: 48px;
+}
+
+body.chama-web .imghome {
+  display: block;
+  margin: 28px auto 12px;
+  max-height: 100px;
+  width: auto;
+  max-width: min(90vw, 280px);
+  filter: drop-shadow(0 0 20px rgba(57, 255, 106, 0.25));
+}
+
+body.chama-web .form-login {
+  background: rgba(20, 26, 23, 0.92) !important;
+  border: 1px solid rgba(57, 255, 106, 0.2);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  max-width: 360px;
+}
+
+body.chama-web .form-login h2.form-login-heading {
+  background: linear-gradient(90deg, var(--chama-neon-dark), var(--chama-neon)) !important;
+  border: none;
+  color: #061208 !important;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+body.chama-web .login-wrap {
+  background: transparent;
+}
+
+body.chama-web .login-wrap .form-control {
+  background: #0f1412;
+  border: 1px solid rgba(57, 255, 106, 0.25);
+  color: var(--chama-text);
+}
+
+body.chama-web .login-wrap .form-control:focus {
+  border-color: var(--chama-neon);
+  box-shadow: 0 0 0 1px rgba(57, 255, 106, 0.35);
+}
+
+body.chama-web .btn-theme {
+  background: linear-gradient(180deg, var(--chama-neon), var(--chama-neon-dark)) !important;
+  border-color: var(--chama-neon-dark) !important;
+  color: #031105 !important;
+  font-weight: 700;
+}
+
+body.chama-web .btn-theme:hover,
+body.chama-web .btn-theme:focus {
+  background: var(--chama-neon) !important;
+  color: #020804 !important;
+  box-shadow: 0 0 18px rgba(57, 255, 106, 0.35);
+}
+
+body.chama-web .registration a {
+  color: var(--chama-gold);
+}
+
+body.chama-web .registration a:hover {
+  color: #fff3a2;
+}
+
+body.chama-web .modal-header {
+  background: var(--chama-neon-dark) !important;
+}
+
+body.chama-web .password-toggle-wrap .password-toggle-btn:hover {
+  color: var(--chama-neon) !important;
+}
+
+/* Painel (layout com sidebar) — toque de marca sem rebentar o conteúdo */
+body.chama-dash .header.black-bg {
+  background: #101614 !important;
+  border-bottom: 1px solid rgba(57, 255, 106, 0.18);
+}
+
+body.chama-dash .sidebar-toggle-box .fa {
+  color: var(--chama-neon);
+}
+
+body.chama-dash #sidebar {
+  background: #121a17 !important;
+}
+
+body.chama-dash #sidebar .centered p {
+  color: var(--chama-muted);
+}
+
+body.chama-dash ul.sidebar-menu li a:hover,
+body.chama-dash ul.sidebar-menu li a.active {
+  color: var(--chama-neon) !important;
+}
+
+body.chama-dash ul.sidebar-menu li ul.sub li {
+  background: #161d1a !important;
+}
+
+/* Logo Chama no 12 no topo dos painéis (user / motorista) */
+body.chama-dash .header .logo.chama-header-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+body.chama-dash .header .logo.chama-header-logo .chama-brand-logo {
+  height: 34px;
+  width: auto;
+  max-width: 160px;
+  object-fit: contain;
+  vertical-align: middle;
+}
+
+body.chama-dash .header .logo.chama-header-logo b {
+  letter-spacing: 0.02em;
+}
+
+/* Landing / painel motorista (driver) — logo da marca */
+img.driver-landing-brand-logo {
+  max-height: 72px;
+  width: auto;
+  max-width: min(88vw, 260px);
+  object-fit: contain;
+}

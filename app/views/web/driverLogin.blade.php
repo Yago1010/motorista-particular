@@ -5,7 +5,7 @@
     <div class="overlay"></div>
     <div class="landing">
         <div class="row uber-logo">
-            <div class="col-md-1 col-sm-4 col-xs-4"><img src="{{ asset('web/img/logo.png') }}" alt=""></div>
+            <div class="col-md-1 col-sm-4 col-xs-4"><?php $driverBrandLogo = app_brand_logo(); ?><img src="{{ asset(ltrim($driverBrandLogo, '/')) }}" alt="{{ e(Config::get('app.website_title')) }}" class="driver-landing-brand-logo"></div>
             <div class="col-md-10 hidden-sm hidden-xs"></div>
             <div class="col-md-1 col-md-offset-0 col-sm-2 col-sm-offset-6 col-xs-4 col-xs-offset-4 login-button" data-toggle="modal" data-target="#myModal"><a href="#">LOGIN</a></div>
         </div>
@@ -169,7 +169,10 @@
             <div class="modal-body">
                 <form method="post" action="">
                     <input type="email" name="email" class="form-control" placeholder="Email" required><br/><br/>
-                    <input type="password" name="password" class="form-control" placeholder="Password" required><br/><br/>
+                    <div class="password-toggle-wrap">
+                      <input type="password" name="password" class="form-control" placeholder="Password" required>
+                      <button type="button" class="password-toggle-btn" aria-label="{{ trans('ui.show_password') }}" data-label-show="{{ trans('ui.show_password') }}" data-label-hide="{{ trans('ui.hide_password') }}"><i class="fa fa-eye"></i></button>
+                    </div><br/><br/>
                     <button type="submit" class="btn-blue form-control">login</button><br/><br/>
                 </form>
             </div>
@@ -183,7 +186,10 @@
                 <form method="post" action="">
                     <input type="text" name="name" class="form-control" placeholder="Name" required="true"><br>
                     <input type="email" name="email" class="form-control email" placeholder="Email" required="true"><br>
-                    <input type="password" name="password" class="form-control" placeholder="Password" required="true"><br>
+                    <div class="password-toggle-wrap">
+                      <input type="password" name="password" class="form-control" placeholder="Password" required="true">
+                      <button type="button" class="password-toggle-btn" aria-label="{{ trans('ui.show_password') }}" data-label-show="{{ trans('ui.show_password') }}" data-label-hide="{{ trans('ui.hide_password') }}"><i class="fa fa-eye"></i></button>
+                    </div><br>
                     <input type="text" name="country_code" class="form-control" placeholder="Country Code Ex: +1" required="true"><br>
                     <input type="text" name="contact" class="form-control" placeholder="Contact Number" required="true"><br>
                     <input type="text" name="dob" class="form-control" id="datepicker" placeholder="Date Of Birth YYYY-MM-DD" required="true"><br>

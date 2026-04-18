@@ -1,7 +1,6 @@
 <html>
     <!-- START Head -->
     <head>
-    <?php $theme = Theme::all();?>
         <!-- START META SECTION -->
         <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -10,22 +9,10 @@
         <title><?= $title ?> | <?= Config::get('app.website_title') ?> Web Dashboard</title>
                 
          <?php 
-         $active='#000066';
-         $logo = '/image/logo.png';
-         $favicon='/image/favicon.ico';
-         foreach($theme as $themes) {
-            $active = $themes->active_color; 
-            $favicon = '/uploads/'.$themes->favicon;
-            $logo= '/uploads/'.$themes->logo;
-        }
-        if($logo=='/uploads/')
-        {
-         $logo = '/image/logo.png';
-        }
-        if($favicon=='/uploads/')
-        {
-            $favicon='/image/favicon.ico';
-        }?>
+         $active = app_theme_active_color();
+         $logo = app_brand_logo();
+         $favicon = app_brand_favicon();
+        ?>
 
         <link rel="icon" type="image/ico" href="<?php echo asset_url(); ?><?php echo $favicon;?>">
         <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
@@ -101,6 +88,7 @@
         }
         </style>
         <?php 
+                 $theme = Theme::all();
                  $theme_color = '#0000CC';
                  $primary_color = '#0000FF';
                  $secondary_color = '#3366FF';

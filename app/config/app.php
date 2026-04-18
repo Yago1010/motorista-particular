@@ -52,7 +52,7 @@ return array(
     |
     */
 
-    'locale' => 'en',
+    'locale' => 'pt',
 
     /*
     |--------------------------------------------------------------------------
@@ -200,7 +200,11 @@ return array(
         'Image' => 'Intervention\Image\Facades\Image',
     ),
 
-    'website_title' => 'UberX',
+    'website_title' => 'Chama no 12',
+    /* Logo principal (Chama no 12) — ficheiro em /image/chama-no-12-web.jpeg */
+    'default_logo' => '/image/chama-no-12-web.jpeg',
+    /* false = ignora logo/favicon do painel "Theme" na BD (uploads) e usa sempre default_logo. */
+    'use_theme_upload_logo' => false,
     'website_meta_description' => '',
     'website_meta_keywords' => '',
 

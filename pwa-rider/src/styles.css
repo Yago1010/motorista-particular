@@ -1,0 +1,9 @@
+/* Reset mínimo; tema Chama em theme/pwa-chama.css */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}

@@ -11,23 +11,10 @@
 
 
 <?php 
-             $theme = Theme::all();
-         $active='#000066';
-         $logo = '/image/logo.png';
-         $favicon='/image/favicon.ico';
-         foreach($theme as $themes) {
-            $active = $themes->active_color; 
-            $favicon = '/uploads/'.$themes->favicon;
-            $logo= '/uploads/'.$themes->logo;
-        }
-        if($logo=='/uploads/')
-        {
-         $logo = '/image/logo.png';
-        }
-        if($favicon=='/uploads/')
-        {
-            $favicon='/image/favicon.ico';
-        }?>
+         $active = app_theme_active_color();
+         $logo = app_brand_logo();
+         $favicon = app_brand_favicon();
+        ?>
 
 
     <link rel="icon" type="image/ico" href="<?php echo asset_url(); ?><?php echo $favicon;?>">
@@ -40,6 +27,8 @@
      <link rel="stylesheet" href="//code.jquery.com/ui/1.11.2/themes/smoothness/jquery-ui.css">
     <link href="<?php echo asset_url(); ?>/web/css/style.css" rel="stylesheet">
     <link href="<?php echo asset_url(); ?>/web/css/style-responsive.css" rel="stylesheet">
+    <link href="<?php echo asset_url(); ?>/web/css/chama-brand.css" rel="stylesheet">
+    <link href="<?php echo asset_url(); ?>/web/css/password-toggle.css" rel="stylesheet">
     <link rel="stylesheet" type="text/css" href="<?php echo asset_url(); ?>/web/js/gritter/css/jquery.gritter.css" />
 
 
@@ -137,7 +126,7 @@ function get_destination_address(lati,longi){
     </style>
   </head>
 
-  <body>
+  <body class="chama-dash">
 
   <section id="container" >
       <!-- **********************************************************************************************************************************************************
@@ -150,7 +139,7 @@ function get_destination_address(lati,longi){
               </div>
             <!--logo start-->
 
-            <a href="{{ URL::Route('ProviderTrips') }}" class="logo"><b><?php  $siteTitle = Config::get('app.website_title'); echo $siteTitle;  ?></b></a>
+            <a href="{{ URL::Route('ProviderTrips') }}" class="logo chama-header-logo"><?php $siteTitle = Config::get('app.website_title'); ?><img src="<?php echo e(asset_url().$logo); ?>" alt="<?php echo e($siteTitle); ?>" class="chama-brand-logo"><b><?php echo e($siteTitle); ?></b></a>
 
             <!--logo end-->
             <div class="nav notify-row" id="top_menu">
@@ -448,9 +437,7 @@ function get_destination_address(lati,longi){
      // Start the tour
      tour.start();
 </script>
-         
-          
-       
+    <script src="<?php echo asset_url(); ?>/web/js/password-toggle.js" type="text/javascript"></script>
 
   </body>
 </html>

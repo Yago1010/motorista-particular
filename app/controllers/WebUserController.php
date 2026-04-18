@@ -71,54 +71,56 @@ class WebUserController extends \BaseController {
         						)));
 
         
-		$date = date("Y-m-d H:i:s");
-		$time_limit = date("Y-m-d H:i:s",strtotime($date)-(3*60*60));
 		$owner_id = Session::get('user_id');
-
-		$current_request = Requests::where('owner_id',$owner_id)
-								 ->where('is_cancelled',0)
-								 ->where('created_at','>',$time_limit)
-								 ->orderBy('created_at','desc')
-								 ->where(function($query)
-						            {
-						            	$query->where('status',0)->orWhere(function($query_inner)
-						            	{
-						                	$query_inner->where('status', 1)
-						                      ->where('is_walker_rated', 0);
-						                });
-						            })
-								 ->first();
-		$this->status = 0;
-		if($current_request)
+		/* Só consulta pedidos quando há sessão — evita PDO em /user/signin com BD indisponível. */
+		if ($owner_id)
 		{
-			if($current_request->confirmed_walker)
+			$date = date("Y-m-d H:i:s");
+			$time_limit = date("Y-m-d H:i:s", strtotime($date) - (3 * 60 * 60));
+
+			$current_request = Requests::where('owner_id', $owner_id)
+									 ->where('is_cancelled', 0)
+									 ->where('created_at', '>', $time_limit)
+									 ->orderBy('created_at', 'desc')
+									 ->where(function ($query) {
+										 $query->where('status', 0)->orWhere(function ($query_inner) {
+											 $query_inner->where('status', 1)
+												  ->where('is_walker_rated', 0);
+										 });
+									 })
+									 ->first();
+			$this->status = 0;
+			if ($current_request)
 			{
-				$walker = Walker::find($current_request->confirmed_walker);
-			}
-			
-			if ($current_request->is_completed) {
-				$this->status = 5;
-			}
-			elseif ($current_request->is_started) {
-				$this->status = 4;
-			}
-			elseif ($current_request->is_walker_arrived) {
-				$this->status = 3;
-			}
-			elseif ($current_request->is_walker_started) {
-				$this->status = 2;
-			}
-			elseif ($current_request->confirmed_walker) {
-				$this->status = 1;
-			}
-			else{
-				if($current_request->status == 1)
+				if ($current_request->confirmed_walker)
 				{
-					$this->status = 6;
+					$walker = Walker::find($current_request->confirmed_walker);
 				}
+
+				if ($current_request->is_completed) {
+					$this->status = 5;
+				}
+				elseif ($current_request->is_started) {
+					$this->status = 4;
+				}
+				elseif ($current_request->is_walker_arrived) {
+					$this->status = 3;
+				}
+				elseif ($current_request->is_walker_started) {
+					$this->status = 2;
+				}
+				elseif ($current_request->confirmed_walker) {
+					$this->status = 1;
+				}
+				else {
+					if ($current_request->status == 1)
+					{
+						$this->status = 6;
+					}
+				}
+				Session::put('status', $this->status);
+				Session::put('request_id', $current_request->id);
 			}
-			Session::put('status', $this->status);	
-			Session::put('request_id', $current_request->id);
 		}
 
 		$paypal_conf = Config::get('paypal');

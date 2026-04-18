@@ -13,7 +13,10 @@
 
 App::before(function($request)
 {
-	$locale = Session::get('locale', Config::get('app.locale', 'en'));
+	$locale = Session::get('locale', Config::get('app.locale', 'pt'));
+	if ($locale === 'pt_BR' || $locale === 'pt-br') {
+		$locale = 'pt';
+	}
 	App::setLocale($locale);
 });
 

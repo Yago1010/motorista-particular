@@ -21,7 +21,12 @@
                           </div>
                        <div class="form-group">
                           <label>Password</label>
-                          <input type="password" class="form-control" name="password" placeholder="Add admin password">
+                          <div class="password-toggle-wrap">
+                            <input type="password" class="form-control" name="password" id="add-admin-password" placeholder="Add admin password" autocomplete="new-password">
+                            <button type="button" class="password-toggle-btn" aria-label="{{ trans('ui.show_password') }}" data-label-show="{{ trans('ui.show_password') }}" data-label-hide="{{ trans('ui.hide_password') }}">
+                              <i class="fa fa-eye"></i>
+                            </button>
+                          </div>
                         </div>
                         </div>
                         <div class="box-footer">

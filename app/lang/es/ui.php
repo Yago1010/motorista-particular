@@ -38,4 +38,12 @@ return array(
 	,'tour_user_signup_content' => 'Complete los datos y pulse Registrarse.'
 	,'tour_provider_signup_title' => 'Registro de nuevo :provider'
 	,'tour_provider_signup_content' => 'Complete los datos y pulse Registrarse.'
+	,'admin_login_welcome' => 'Bienvenido a :name'
+	,'admin_login_form_title' => 'Inicie sesion en su cuenta'
+	,'admin_login_username_label' => 'Usuario'
+	,'admin_login_password_label' => 'Contrasena'
+	,'admin_login_username_placeholder' => 'Usuario o correo'
+	,'admin_login_password_placeholder' => 'Contrasena'
+	,'admin_login_error_invalid' => 'Usuario o contrasena incorrectos.'
+	,'admin_login_error_db' => 'Sin conexion a la base de datos. Inicie MySQL (puerto 3306, base uberx) y ejecute setup-database.ps1.'
 );

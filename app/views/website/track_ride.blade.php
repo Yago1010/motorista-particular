@@ -17,6 +17,7 @@
     <link rel="stylesheet" href="<?php echo asset_url(); ?>/website/css/font-awesome.min.css">
 
     <link rel="stylesheet" href="<?php echo asset_url(); ?>/website/css/styles.css">
+    <link rel="stylesheet" href="<?php echo asset_url(); ?>/website/css/chama-brand.css">
     <script src="https://maps.googleapis.com/maps/api/js?v=3.exp&signed_in=true"></script>
 
     <script>
@@ -142,7 +143,7 @@ function initialize(cur_lat,cur_lon, prev_lat, prev_lon) {
     </script>
 
   </head>
-  <body>
+  <body class="chama-site">
   	<div class="navbar navbar-default">
       <div class="container">
         <div class="navbar-header pull-left">    
@@ -184,7 +185,7 @@ function initialize(cur_lat,cur_lon, prev_lat, prev_lon) {
         if(response.success)
         {
             $("#tit").html(response.titl);
-            $("#log").attr("src",at + response.logo);
+            $("#logo").attr("src",at + response.logo);
             initialize(response.cur_lat,response.cur_lon, response.prev_lat, response.prev_lon);
         }
         else

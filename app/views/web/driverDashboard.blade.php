@@ -9,6 +9,12 @@
         width: auto;
         display: inline;
     }
+    img.driver-landing-brand-logo {
+        max-height: 72px;
+        width: auto;
+        max-width: min(88vw, 260px);
+        object-fit: contain;
+    }
 </style>
 @stop
 
@@ -17,7 +23,7 @@
 <div class="row first-fold">
     <div class="landing">
         <div class="row uber-logo second-uber-logo">
-            <div class="col-md-1 col-xs-12"><img src="{{ asset('web/img/logo.png') }}" alt=""></div>
+            <div class="col-md-1 col-xs-12"><?php $driverBrandLogo = app_brand_logo(); ?><img src="{{ asset(ltrim($driverBrandLogo, '/')) }}" alt="{{ e(Config::get('app.website_title')) }}" class="driver-landing-brand-logo"></div>
             <div class="col-md-5 col-md-offset-6 col-xs-12">
                 <ul class="inline">
                     <li><a href="#">Home</a> | </li>

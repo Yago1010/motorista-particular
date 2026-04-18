@@ -9,11 +9,12 @@
 $demoPassword = 'Admin123!';
 
 $host = getenv('DB_HOST') ?: '127.0.0.1';
+$port = (getenv('DB_PORT') !== false && getenv('DB_PORT') !== '') ? (int) getenv('DB_PORT') : 3306;
 $user = getenv('DB_USERNAME') ?: 'root';
 $pass = getenv('DB_PASSWORD') !== false ? getenv('DB_PASSWORD') : '';
 $db = getenv('DB_DATABASE') ?: 'uberx';
 
-$mysqli = @new mysqli($host, $user, $pass, $db);
+$mysqli = @new mysqli($host, $user, $pass, $db, $port);
 if ($mysqli->connect_error)
 {
 	fwrite(STDERR, "Ligação falhou: ".$mysqli->connect_error."\n");

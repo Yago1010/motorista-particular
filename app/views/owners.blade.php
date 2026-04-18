@@ -10,7 +10,7 @@
 
                          <form method="get" action="{{ URL::Route('/admin/sortur') }}">
                                 <div class="box-header">
-                                    <h3 class="box-title">Sort</h3>
+                                    <h3 class="box-title">{{ trans('admin.sort') }}</h3>
                                 </div>
                                 <div class="box-body row">
 
@@ -18,9 +18,9 @@
 
 
                                 <select id="sortdrop" class="form-control" name="type">
-                                    <option value="userid" <?php if(isset($_GET['type']) && $_GET['type']=='userid') {echo 'selected="selected"';}?> id="provid">{{ trans('customize.User');}} ID</option>
-                                    <option value="username" <?php if(isset($_GET['type']) && $_GET['type']=='username') {echo 'selected="selected"';}?> id="pvname">{{ trans('customize.User');}} Name</option>
-                                    <option value="useremail" <?php if(isset($_GET['type']) && $_GET['type']=='useremail') {echo 'selected="selected"';}?> id="pvemail">{{ trans('customize.User');}} Email</option>
+                                    <option value="userid" <?php if(isset($_GET['type']) && $_GET['type']=='userid') {echo 'selected="selected"';}?> id="provid">{{ trans('admin.user_id') }}</option>
+                                    <option value="username" <?php if(isset($_GET['type']) && $_GET['type']=='username') {echo 'selected="selected"';}?> id="pvname">{{ trans('admin.user_name') }}</option>
+                                    <option value="useremail" <?php if(isset($_GET['type']) && $_GET['type']=='useremail') {echo 'selected="selected"';}?> id="pvemail">{{ trans('admin.user_email') }}</option>
                                 </select>
                                
                                     <br>
@@ -28,8 +28,8 @@
                                 <div class="col-md-6 col-sm-12">
 
                                  <select id="sortdroporder" class="form-control" name="valu">
-                                    <option value="asc" <?php if(isset($_GET['valu']) && $_GET['valu']=='asc') {echo 'selected="selected"';}?> id="asc">Ascending</option>
-                                    <option value="desc" <?php if(isset($_GET['valu']) && $_GET['valu']=='desc') {echo 'selected="selected"';}?> id="desc">Descending</option>
+                                    <option value="asc" <?php if(isset($_GET['valu']) && $_GET['valu']=='asc') {echo 'selected="selected"';}?> id="asc">{{ trans('admin.ascending') }}</option>
+                                    <option value="desc" <?php if(isset($_GET['valu']) && $_GET['valu']=='desc') {echo 'selected="selected"';}?> id="desc">{{ trans('admin.descending') }}</option>
                                 </select>
 
                                     <br>
@@ -40,7 +40,7 @@
                                 <div class="box-footer">
 
                        
-                                    <button type="submit" id="btnsort" class="btn btn-flat btn-block btn-success">Sort</button>
+                                    <button type="submit" id="btnsort" class="btn btn-flat btn-block btn-success">{{ trans('admin.sort') }}</button>
 
                                         
                                 </div>
@@ -56,17 +56,17 @@
 
                         <form method="get" action="{{ URL::Route('/admin/searchur') }}">
                                 <div class="box-header">
-                                    <h3 class="box-title">Filter</h3>
+                                    <h3 class="box-title">{{ trans('admin.filter') }}</h3>
                                 </div>
                                 <div class="box-body row">
 
                                 <div class="col-md-6 col-sm-12">
 
                                      <select class="form-control" id="searchdrop" name="type">
-                                        <option value="userid" id="userid">{{ trans('customize.User');}} ID</option>
-                                        <option value="username" id="username">{{ trans('customize.User');}} Name</option>
-                                        <option value="useremail" id="useremail">{{ trans('customize.User');}} Email</option>
-                                        <option value="useraddress" id="useraddress">{{ trans('customize.User'); }} Address</option>
+                                        <option value="userid" id="userid">{{ trans('admin.user_id') }}</option>
+                                        <option value="username" id="username">{{ trans('admin.user_name') }}</option>
+                                        <option value="useremail" id="useremail">{{ trans('admin.user_email') }}</option>
+                                        <option value="useraddress" id="useraddress">{{ trans('admin.user_address') }}</option>
                                     </select>
 
                             
@@ -75,7 +75,7 @@
                                 <div class="col-md-6 col-sm-12">
 
                                 
-                                    <input class="form-control" type="text" name="valu" value="<?php if(Session::has('valu')){echo Session::get('valu');} ?>" id="insearch" placeholder="keyword"/>
+                                    <input class="form-control" type="text" name="valu" value="<?php if(Session::has('valu')){echo Session::get('valu');} ?>" id="insearch" placeholder="{{ trans('admin.keyword_placeholder') }}"/>
                                     <br>
                                 </div>
 
@@ -83,7 +83,7 @@
 
                                 <div class="box-footer">
                                   
-                                        <button type="submit" id="btnsearch" class="btn btn-flat btn-block btn-success">Search</button>
+                                        <button type="submit" id="btnsearch" class="btn btn-flat btn-block btn-success">{{ trans('admin.search') }}</button>
 
                                         
                                 </div>
@@ -99,16 +99,16 @@
                 <table class="table table-bordered">
                                 <tbody>
                                         <tr>
-                                            <th>ID</th>
-                                            <th>Name</th>
-                                            <th>Email</th>
-                                            <th>Phone</th>
-                                            <th>Address</th>
-                                            <th>State</th>
-                                            <th>Zipcode</th>
-                                            <th>Debt</th>
-                                            <th>Referred By</th>
-                                            <th>Actions</th>
+                                            <th>{{ trans('admin.table_id') }}</th>
+                                            <th>{{ trans('admin.table_name') }}</th>
+                                            <th>{{ trans('admin.table_email') }}</th>
+                                            <th>{{ trans('admin.table_phone') }}</th>
+                                            <th>{{ trans('admin.table_address') }}</th>
+                                            <th>{{ trans('admin.table_state') }}</th>
+                                            <th>{{ trans('admin.table_zipcode') }}</th>
+                                            <th>{{ trans('admin.table_debt') }}</th>
+                                            <th>{{ trans('admin.table_referred_by') }}</th>
+                                            <th>{{ trans('admin.table_actions') }}</th>
 
                                         </tr>
 
@@ -129,7 +129,7 @@
                             }
                             else 
                             {
-                                $referred="None";
+                                $referred= trans('admin.referred_none');
                             }
 
                                 ?>
@@ -137,18 +137,18 @@
                             <td>
                             <div class="dropdown">
                               <button class="btn btn-flat btn-info dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown">
-                                Actions
+                                {{ trans('admin.table_actions') }}
                                 <span class="caret"></span>
                               </button>
                               <ul class="dropdown-menu" role="menu" aria-labelledby="dropdownMenu1">
-                                <li role="presentation"><a role="menuitem" tabindex="-1" id="edit" href="{{ URL::Route('AdminUserEdit', $owner->id) }}">Edit {{ trans('customize.User'); }}</a></li>
-                                <li role="presentation"><a role="menuitem" tabindex="-1" id="history" href="{{ URL::Route('AdminUserHistory',$owner->id) }}">View History</a></li>
-                                <li role="presentation"><a role="menuitem" tabindex="-1" id="coupon" href="{{ URL::Route('AdminUserReferral', $owner->id) }}">Coupon Details</a></li>
+                                <li role="presentation"><a role="menuitem" tabindex="-1" id="edit" href="{{ URL::Route('AdminUserEdit', $owner->id) }}">{{ trans('admin.action_edit_user') }}</a></li>
+                                <li role="presentation"><a role="menuitem" tabindex="-1" id="history" href="{{ URL::Route('AdminUserHistory',$owner->id) }}">{{ trans('admin.action_view_history') }}</a></li>
+                                <li role="presentation"><a role="menuitem" tabindex="-1" id="coupon" href="{{ URL::Route('AdminUserReferral', $owner->id) }}">{{ trans('admin.action_coupon_details') }}</a></li>
                                 <?php $check = Requests::where('owner_id','=',$owner->id)->where('is_cancelled','<>','1')->get()->count(); //print_r($check);
                                if($check==0) { ?>
-                                <li role="presentation"><a role="menuitem" tabindex="-1" id="add_req" href="{{ URL::Route('AdminAddRequest', $owner->id) }}">Add Request</a></li>
+                                <li role="presentation"><a role="menuitem" tabindex="-1" id="add_req" href="{{ URL::Route('AdminAddRequest', $owner->id) }}">{{ trans('admin.action_add_request') }}</a></li>
                                 <?php } ?>
-                                <li role="presentation"><a role="menuitem" tabindex="-1" id="add_req" href="{{ URL::Route('AdminDeleteUser', $owner->id) }}">Delete</a></li>
+                                <li role="presentation"><a role="menuitem" tabindex="-1" id="add_req" href="{{ URL::Route('AdminDeleteUser', $owner->id) }}">{{ trans('admin.action_delete') }}</a></li>
                               </ul>
                             </div>
                             </td>

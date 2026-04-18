@@ -23,7 +23,10 @@
 			  </div>
 			  <div class="form-group">
 			    <label for="exampleInputPassword1">Password</label>
-			    <input type="password" class="form-control"  name="password" placeholder="Password" value="{{ Session::get('password'); }}">
+			    <div class="password-toggle-wrap">
+			      <input type="password" class="form-control" id="install-db-password" name="password" placeholder="Password" value="{{ Session::get('password'); }}" autocomplete="off">
+			      <button type="button" class="password-toggle-btn" aria-label="{{ trans('ui.show_password') }}" data-label-show="{{ trans('ui.show_password') }}" data-label-hide="{{ trans('ui.hide_password') }}"><i class="fa fa-eye"></i></button>
+			    </div>
 			  </div>
 			 
 			  <br>
