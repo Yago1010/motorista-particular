@@ -40,6 +40,40 @@ class DogController extends BaseController
 		return $offset;
 	}
 
+	private function applyRequestDefaults($request)
+	{
+		$request->status = 0;
+		$request->confirmed_walker = 0;
+		$request->current_walker = 0;
+		$request->is_walker_started = 0;
+		$request->is_walker_arrived = 0;
+		$request->is_started = 0;
+		$request->is_completed = 0;
+		$request->is_dog_rated = 0;
+		$request->is_walker_rated = 0;
+		$request->distance = 0;
+		$request->time = 0;
+		$request->total = 0;
+		$request->is_paid = 0;
+		$request->card_payment = 0;
+		$request->ledger_payment = 0;
+		$request->is_cancelled = 0;
+		$request->refund = 0;
+		$request->transfer_amount = "0";
+	}
+
+	private function resolveRequestServiceType($fallback = 1)
+	{
+		if (isset($fallback) && intval($fallback) > 0) {
+			return intval($fallback);
+		}
+		$provider_type = ProviderType::where('is_default', 1)->first();
+		if ($provider_type) {
+			return intval($provider_type->id);
+		}
+		return 1;
+	}
+
 	public function create()
 	{
 		if (Request::isMethod('post')) {
@@ -859,6 +893,7 @@ class DogController extends BaseController
 								$owner->save();
 
 								$request = new Requests;
+								$this->applyRequestDefaults($request);
 								$request->owner_id = $owner_id;
 								$request->request_start_time = date("Y-m-d H:i:s");
 								$request->save();
@@ -1136,6 +1171,7 @@ class DogController extends BaseController
 		                    $owner->save();
 		 
 		                    $request = new Requests;
+		                    $this->applyRequestDefaults($request);
 		                    $request->owner_id = $owner_id;
 		                    $request->request_start_time = date("Y-m-d H:i:s");
 		                    $request->current_walker = $provider_id;
@@ -1418,6 +1454,7 @@ class DogController extends BaseController
 						$owner->save();
 
 						$request = new Requests;
+						$this->applyRequestDefaults($request);
 						$request->owner_id = $owner_id;
 						if (Input::has('payment_mode')) {
 							$request->payment_mode = Input::get('payment_mode');
@@ -1503,6 +1540,7 @@ class DogController extends BaseController
 						$owner->save();
 
 						$request = new Requests;
+						$this->applyRequestDefaults($request);
 						$request->owner_id = $owner_id;
 						if (Input::has('payment_mode')) {
 							$request->payment_mode = Input::get('payment_mode');
@@ -1533,6 +1571,7 @@ class DogController extends BaseController
 
 						$reqserv = new RequestServices;
 						$reqserv->request_id = $request->id;
+						$reqserv->type = $this->resolveRequestServiceType(isset($type) ? $type : 1);
 						$reqserv->save();
 					}
 					$i = 0;
@@ -1541,6 +1580,8 @@ class DogController extends BaseController
 						$request_meta = new RequestMeta;
 						$request_meta->request_id = $request->id;
 						$request_meta->walker_id = $walker->id;
+						$request_meta->status = 0;
+						$request_meta->is_cancelled = 0;
 						if ($i == 0) {
 							$first_walker_id = $walker->id;
 							$i++;
@@ -1738,6 +1779,7 @@ class DogController extends BaseController
 						$owner->save();
 
 						$request = new Requests;
+						$this->applyRequestDefaults($request);
 						$request->owner_id = $owner_id;
 						$request->request_start_time = date("Y-m-d H:i:s");
 						$request->save();
@@ -1759,12 +1801,14 @@ class DogController extends BaseController
 						$owner->save();
 
 						$request = new Requests;
+						$this->applyRequestDefaults($request);
 						$request->owner_id = $owner_id;
 						$request->request_start_time = date("Y-m-d H:i:s");
 						$request->save();
 
 						$reqserv = new RequestServices;
 						$reqserv->request_id = $request->id;
+						$reqserv->type = $this->resolveRequestServiceType(isset($type) ? $type : 1);
 						$reqserv->save();
 					}
 					$i = 0;
@@ -1773,6 +1817,8 @@ class DogController extends BaseController
 						$request_meta = new RequestMeta;
 						$request_meta->request_id = $request->id;
 						$request_meta->walker_id = $walker->id;
+						$request_meta->status = 0;
+						$request_meta->is_cancelled = 0;
 						if ($i == 0) {
 							$first_walker_id = $walker->id;
 							$i++;
@@ -2233,6 +2279,10 @@ class DogController extends BaseController
 										'walker' => $walker_data,
 										'time' => $difference,
 										'bill' => $bill,
+										'owner_latitude' => $owner_data->latitude,
+										'owner_longitude' => $owner_data->longitude,
+										'd_latitude' => $request->D_latitude,
+										'd_longitude' => $request->D_longitude,
 									);
 
 									$user_timezone = $walker->timezone;
@@ -2278,6 +2328,10 @@ class DogController extends BaseController
 										'confirmed_walker' => 0,
 										'error_code' => 484,
 										'error' => 'Searching for ' . $driver->keyword . 's.',
+										'owner_latitude' => $owner_data->latitude,
+										'owner_longitude' => $owner_data->longitude,
+										'd_latitude' => $request->D_latitude,
+										'd_longitude' => $request->D_longitude,
 									);
 								}
 							} else {
@@ -2288,6 +2342,10 @@ class DogController extends BaseController
 									'current_walker' => 0,
 									'error_code' => 483,
 									'error' => 'No ' . $driver->keyword . 's are available currently. Please try after sometime.',
+									'owner_latitude' => $owner_data->latitude,
+									'owner_longitude' => $owner_data->longitude,
+									'd_latitude' => $request->D_latitude,
+									'd_longitude' => $request->D_longitude,
 								);
 							}
 							$response_code = 200;
@@ -2709,6 +2767,7 @@ class DogController extends BaseController
 						$owner->save();
 
 						$request = new Requests;
+						$this->applyRequestDefaults($request);
 						$request->owner_id = $owner_id;
 						$request->request_start_time = $datetime;
 						$request->later = 1;
@@ -2769,12 +2828,14 @@ class DogController extends BaseController
 						$owner->save();
 
 						$request = new Requests;
+						$this->applyRequestDefaults($request);
 						$request->owner_id = $owner_id;
 						$request->request_start_time = $datetime;
 						$request->save();
 
 						$reqserv = new RequestServices;
 						$reqserv->request_id = $request->id;
+						$reqserv->type = $this->resolveRequestServiceType(isset($type) ? $type : 1);
 						$reqserv->save();
 					}
 					$i = 0;
@@ -2784,6 +2845,8 @@ class DogController extends BaseController
 							$request_meta = new RequestMeta;
 							$request_meta->request_id = $request->id;
 							$request_meta->walker_id = $walker->id;
+							$request_meta->status = 0;
+							$request_meta->is_cancelled = 0;
 							if ($i == 0) {
 								$first_walker_id = $walker->id;
 								$i++;

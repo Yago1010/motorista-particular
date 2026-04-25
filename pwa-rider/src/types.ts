@@ -4,6 +4,8 @@ export type RiderSession = {
   first_name: string
   last_name: string
   email: string
+  /** Telefone do passageiro (API `/user/login`, campo `phone`). */
+  phone?: string
 }
 
 export type ApiEnvelope<T = Record<string, unknown>> = {

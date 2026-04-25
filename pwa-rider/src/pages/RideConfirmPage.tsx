@@ -2,25 +2,78 @@ import { useEffect, useMemo, useState } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
 import { RideMap } from '../components/RideMap'
+import { PayMethodIcon } from '../components/PayMethodIcon'
 import { createRideRequest, getRequestInProgress } from '../lib/api'
+import { DEFAULT_PAYMENT, paymentToApiMode } from '../lib/paymentFlow'
+import { rideNegociaPriceSchema } from '../lib/validation/schemas'
+import { firstFormError } from '../lib/validation/zodUtils'
 import { ApiError } from '../lib/http'
 import { fetchDrivingRoute, type RouteResult } from '../lib/routeDirections'
 import { readSession } from '../lib/storage'
 import type { RideConfirmNavState } from '../types/rideFlow'
 
-type RideKind = 'pop' | 'moto' | 'negocia'
+type RideKind = 'pop' | 'moto' | 'conforto' | 'negocia'
+const LS_RECENT_DEST = 'pwa_chama_recent_destinations'
 
 function formatBrl(n: number) {
   return `R$${n.toFixed(2).replace('.', ',')}`
 }
 
+function round2(v: number) {
+  return Math.round(v * 100) / 100
+}
+
 function estimatePrices(km: number, durMin: number) {
-  const pop = Math.max(7.9, 5.4 + km * 2.75 + durMin * 0.34)
-  const moto = Math.max(5.2, pop * 0.56)
+  const dynamic = km > 14 ? 1.08 : 1
+  const pop = Math.max(8.9, (4.4 + km * 2.1 + durMin * 0.33) * dynamic)
+  const moto = Math.max(6.7, 2.8 + km * 1.45 + durMin * 0.19)
+  const conforto = Math.max(12.9, pop * 1.27)
   const entregaMoto = moto + 2.6
-  const entregaCar = pop + 1.4
-  const negocia = Math.max(6.5, pop * 0.86)
-  return { pop, moto, entregaMoto, entregaCar, negocia }
+  const entregaCar = pop + 2.1
+  const negocia = Math.max(7.5, pop * 0.9)
+  return { pop: round2(pop), moto: round2(moto), conforto: round2(conforto), entregaMoto: round2(entregaMoto), entregaCar: round2(entregaCar), negocia: round2(negocia) }
+}
+
+function saveRecentDestination(item: { primaryText: string; secondaryText: string; lat: number; lng: number }) {
+  try {
+    const raw = localStorage.getItem(LS_RECENT_DEST)
+    const list = raw ? (JSON.parse(raw) as Array<{ id: string; primaryText: string; secondaryText: string; lat: number; lng: number; at: number }>) : []
+    const next = {
+      ...item,
+      id: `${Math.round(item.lat * 1e6)}:${Math.round(item.lng * 1e6)}`,
+      at: Date.now(),
+    }
+    const merged = [next, ...list.filter((x) => x.id !== next.id)].slice(0, 10)
+    localStorage.setItem(LS_RECENT_DEST, JSON.stringify(merged))
+  } catch {
+    /* ignora falha de localStorage */
+  }
+}
+
+function asObj(v: unknown): Record<string, unknown> | null {
+  return v && typeof v === 'object' ? (v as Record<string, unknown>) : null
+}
+
+function extractRequestId(payload: unknown): number {
+  const root = asObj(payload)
+  if (!root) return 0
+  const direct = Number(root.request_id)
+  if (Number.isFinite(direct) && direct > 0) return direct
+  const req = asObj(root.request)
+  if (req) {
+    const nested = Number(req.id ?? req.request_id)
+    if (Number.isFinite(nested) && nested > 0) return nested
+  }
+  return 0
+}
+
+async function waitForRequestId(session: NonNullable<ReturnType<typeof readSession>>, attempts = 8, waitMs = 900): Promise<number> {
+  for (let i = 0; i < attempts; i++) {
+    const status = await getRequestInProgress(session)
+    if (status.request_id > 0) return status.request_id
+    await new Promise((resolve) => window.setTimeout(resolve, waitMs))
+  }
+  return 0
 }
 
 export function RideConfirmPage() {
@@ -63,24 +116,47 @@ export function RideConfirmPage() {
 
   const displayPrice = useMemo(() => {
     if (selected === 'moto') return prices.moto
+    if (selected === 'conforto') return prices.conforto
     if (selected === 'negocia') return negociaVal ?? prices.negocia
     return prices.pop
   }, [selected, prices, negociaVal])
+
+  const payment = state?.payment ?? DEFAULT_PAYMENT
 
   const createMutation = useMutation({
     mutationFn: async () => {
       if (!session) throw new Error('Sessão inválida')
       if (!state?.origin || !state?.dest) throw new Error('Dados em falta.')
-      return createRideRequest(session, state.origin.lat, state.origin.lng, state.dest.lat, state.dest.lng)
+      if (selected === 'negocia') {
+        const val = negociaVal ?? prices.negocia
+        const neg = rideNegociaPriceSchema.safeParse(val)
+        if (!neg.success) throw new Error(firstFormError(neg.error))
+      }
+      return createRideRequest(session, state.origin.lat, state.origin.lng, {
+        destinationLatitude: state.dest.lat,
+        destinationLongitude: state.dest.lng,
+        payment_mode: paymentToApiMode(state.payment ?? DEFAULT_PAYMENT),
+      })
     },
-    onSuccess: async () => {
-      if (!session) return
+    onSuccess: async (created) => {
+      if (!session || !state) return
+      saveRecentDestination({
+        primaryText: state.destPrimary,
+        secondaryText: state.destSecondary || state.destPrimary,
+        lat: state.dest.lat,
+        lng: state.dest.lng,
+      })
       try {
-        const status = await getRequestInProgress(session)
-        if (status.request_id > 0) {
-          navigate(`/status/${status.request_id}`, { replace: true })
+        const createdId = extractRequestId(created)
+        if (createdId > 0) {
+          navigate(`/status/${createdId}`, { replace: true })
+          return
+        }
+        const found = await waitForRequestId(session)
+        if (found > 0) {
+          navigate(`/status/${found}`, { replace: true })
         } else {
-          setMsg('Pedido enviado. Aguarda confirmação.')
+          setMsg('Pedido enviado. Ainda a processar… toque em Solicitar novamente se demorar.')
         }
       } catch (e) {
         setMsg(e instanceof Error ? e.message : 'Erro ao consultar pedido.')
@@ -186,6 +262,25 @@ export function RideConfirmPage() {
             </button>
           </li>
           <li>
+            <button
+              type="button"
+              className={`pwa-confirm-opt${selected === 'conforto' ? ' pwa-confirm-opt--on' : ''}`}
+              onClick={() => setSelected('conforto')}
+            >
+              <span className="pwa-confirm-opt-ico" aria-hidden>
+                🚘
+              </span>
+              <span className="pwa-confirm-opt-mid">
+                <span className="pwa-confirm-opt-title">
+                  Conforto <span className="pwa-confirm-cap">👤4</span>
+                </span>
+                <span className="pwa-confirm-opt-sub">Mais espaço e conforto</span>
+              </span>
+              <span className="pwa-confirm-opt-price">{formatBrl(prices.conforto)}</span>
+              <span className={`pwa-confirm-check${selected === 'conforto' ? ' pwa-confirm-check--on' : ''}`} aria-hidden />
+            </button>
+          </li>
+          <li>
             <div
               role="button"
               tabIndex={0}
@@ -266,12 +361,17 @@ export function RideConfirmPage() {
         </ul>
 
         <div className="pwa-confirm-foot">
-          <div className="pwa-confirm-payrow">
-            <span className="pwa-confirm-pay-ico" aria-hidden>
-              💵
+          <button
+            type="button"
+            className="pwa-confirm-payrow"
+            onClick={() => navigate('/confirmar/pagamento', { state: { flow: 'ride', ride: state } })}
+          >
+            <PayMethodIcon kind={payment.iconKey} className="pwa-confirm-pay-ico" />
+            <span>{payment.label}</span>
+            <span className="pwa-confirm-pay-chev" aria-hidden>
+              ›
             </span>
-            <span>Dinheiro</span>
-          </div>
+          </button>
           <button type="button" className="pwa-confirm-discount">
             Clique para descontos ›
           </button>
@@ -289,7 +389,7 @@ export function RideConfirmPage() {
               }}
             >
               <span>Solicitar</span>
-              <small>{selected === 'moto' ? 'Moto' : selected === 'negocia' ? 'Negocia' : 'Pop'}</small>
+              <small>{selected === 'conforto' ? 'Conforto' : selected === 'moto' ? 'Moto' : selected === 'negocia' ? 'Negocia' : 'Pop'}</small>
             </button>
           </div>
         </div>

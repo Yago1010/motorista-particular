@@ -155,7 +155,34 @@ else
 		fwrite(STDERR, "walker insert: ".$mysqli->error."\n");
 		exit(1);
 	}
+	$wid = (int) $mysqli->insert_id;
 	echo "Motorista criado: $emailW\n";
+}
+
+$serviceType = '1';
+$stmt = $mysqli->prepare('SELECT id FROM walker_services WHERE provider_id = ? AND type = ? LIMIT 1');
+$providerIdStr = (string) $wid;
+$stmt->bind_param('ss', $providerIdStr, $serviceType);
+$stmt->execute();
+$serviceRow = $stmt->get_result()->fetch_assoc();
+$stmt->close();
+
+if ($serviceRow)
+{
+	$serviceId = (int) $serviceRow['id'];
+	$stmt = $mysqli->prepare('UPDATE walker_services SET base_price = 5.00, price_per_unit_distance = 1.00, price_per_unit_time = 0.50, updated_at = NOW() WHERE id = ?');
+	$stmt->bind_param('i', $serviceId);
+	$stmt->execute();
+	$stmt->close();
+	echo "Serviço do motorista atualizado (type=1)\n";
+}
+else
+{
+	$stmt = $mysqli->prepare('INSERT INTO walker_services (provider_id, type, created_at, updated_at, price_per_unit_distance, price_per_unit_time, base_price) VALUES (?, ?, NOW(), NOW(), 1.00, 0.50, 5.00)');
+	$stmt->bind_param('ss', $providerIdStr, $serviceType);
+	$stmt->execute();
+	$stmt->close();
+	echo "Serviço do motorista criado (type=1)\n";
 }
 
 $mysqli->close();

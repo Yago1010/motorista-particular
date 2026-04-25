@@ -20,14 +20,14 @@ async function searchGooglePredictions(
   const ac = new google.maps.places.AutocompleteService()
   const bias = new google.maps.Circle({
     center: { lat: origin.lat, lng: origin.lng },
-    radius: 85_000,
+    radius: 250_000,
   })
   const preds = await new Promise<google.maps.places.AutocompletePrediction[]>((resolve, reject) => {
     ac.getPlacePredictions(
       {
         input,
         sessionToken,
-        componentRestrictions: { country: ['br', 'pt'] },
+        componentRestrictions: { country: ['br', 'pt', 'ao', 'mz'] },
         locationBias: bias,
       },
       (res, status) => {
@@ -39,7 +39,7 @@ async function searchGooglePredictions(
     )
   })
 
-  return preds.slice(0, 10).map((p) => ({
+  return preds.slice(0, 15).map((p) => ({
     id: p.place_id,
     placeId: p.place_id,
     primaryText: p.structured_formatting.main_text,

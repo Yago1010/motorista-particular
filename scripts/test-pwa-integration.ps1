@@ -43,7 +43,7 @@ function Build-QueryUri([string]$Path, [hashtable]$Query) {
 		$enc = [System.Uri]::EscapeDataString([string]$Query[$k])
 		$parts += "$k=$enc"
 	}
-	return "$api$Path?" + ($parts -join '&')
+	return "${api}${Path}?" + ($parts -join '&')
 }
 
 Write-Host ""
@@ -74,10 +74,11 @@ Write-Host '3) Criar corrida POST /user/createrequest'
 $cr = Invoke-FormPost "/user/createrequest" @{
 	token         = $login.token
 	id            = [string]$login.id
-	latitude      = "-23.5505"
-	longitude     = "-46.6333"
-	d_latitude    = "-23.5617"
-	d_longitude   = "-46.6561"
+	type          = "1"
+	latitude      = "-22.66255"
+	longitude     = "-42.50312"
+	d_latitude    = "-22.67000"
+	d_longitude   = "-42.51000"
 	payment_mode  = "1"
 }
 Write-Host ($cr | ConvertTo-Json -Depth 4 -Compress)

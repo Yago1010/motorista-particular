@@ -1,6 +1,6 @@
 import { useRef, useState, type ChangeEvent } from 'react'
-import { Outlet, Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { clearSession, readSession } from '../lib/storage'
+import { Outlet, Navigate, useLocation } from 'react-router-dom'
+import { readSession } from '../lib/storage'
 import { PassengerDrawer } from './PassengerDrawer'
 import { PwaInstallPrompt } from './PwaInstallPrompt'
 import { PassengerTabBar } from './PassengerTabBar'
@@ -8,7 +8,6 @@ import { SplashGate } from './SplashGate'
 
 export function PassengerLayout() {
   const session = readSession()
-  const navigate = useNavigate()
   const location = useLocation()
   const cameraInputRef = useRef<HTMLInputElement>(null)
   const [photoHint, setPhotoHint] = useState('')
@@ -17,7 +16,8 @@ export function PassengerLayout() {
   const pathname = location.pathname
   const mapMode = false
   const statusMode = pathname.startsWith('/status')
-  const ridePlanMode = pathname === '/destino' || pathname === '/confirmar'
+  const ridePlanMode = pathname === '/destino' || pathname === '/confirmar' || pathname.startsWith('/confirmar/')
+  const rideFlowLike = ridePlanMode || statusMode
   const shellMap = mapMode && !statusMode
 
   const initials =
@@ -37,32 +37,8 @@ export function PassengerLayout() {
   }
 
   return (
-    <div
-      className={`pwa-shell${shellMap ? ' pwa-shell--map' : ''}${statusMode ? ' pwa-shell--status' : ''}${ridePlanMode ? ' pwa-shell--ride-flow' : ''}`}
-    >
-      {statusMode ? (
-        <header className="pwa-status-header">
-          <button
-            type="button"
-            className="pwa-status-back"
-            onClick={() => navigate('/home')}
-            aria-label="Voltar ao início"
-          >
-            ←
-          </button>
-          <span className="pwa-status-title">A tua viagem</span>
-          <button
-            type="button"
-            className="pwa-status-signout"
-            onClick={() => {
-              clearSession()
-              navigate('/', { replace: true })
-            }}
-          >
-            Sair
-          </button>
-        </header>
-      ) : ridePlanMode ? null : (
+    <div className={`pwa-shell${shellMap ? ' pwa-shell--map' : ''}${rideFlowLike ? ' pwa-shell--ride-flow' : ''}`}>
+      {rideFlowLike ? null : (
         <header className={`pwa-header-99${shellMap ? ' pwa-header-99--floating' : ''}`}>
           <div className="pwa-header-99-left">
             <button
@@ -123,17 +99,15 @@ export function PassengerLayout() {
         className={
           shellMap
             ? 'pwa-shell-main pwa-shell-main--map pwa-shell-main--with-tabs'
-            : statusMode
-              ? 'pwa-shell-main pwa-shell-main--status'
-              : ridePlanMode
-                ? 'pwa-shell-main pwa-shell-main--ride-flow'
-                : 'pwa-shell-main pwa-shell-main--with-tabs'
+            : rideFlowLike
+              ? 'pwa-shell-main pwa-shell-main--ride-flow'
+              : 'pwa-shell-main pwa-shell-main--with-tabs'
         }
       >
         <Outlet />
       </main>
-      {!statusMode && !ridePlanMode ? <PassengerTabBar /> : null}
-      {!statusMode && !ridePlanMode ? (
+      {!rideFlowLike ? <PassengerTabBar /> : null}
+      {!rideFlowLike ? (
         <PassengerDrawer open={menuOpen} onClose={() => setMenuOpen(false)} session={session} />
       ) : null}
       <PwaInstallPrompt />
