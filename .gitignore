@@ -3,8 +3,15 @@
 /.env
 /.env.*
 !.env.example
+ /pwa-rider/.env
+ /pwa-rider/.env.*
+ !/pwa-rider/.env.example
 /.tmp_locale_cookie.txt
 *.log
 .DS_Store
 Thumbs.db
 /bootstrap/db-env-prepend.php
+ /app/storage/sessions/*
+ !/app/storage/sessions/.gitignore
+ /app/storage/views/*
+ !/app/storage/views/.gitignore
