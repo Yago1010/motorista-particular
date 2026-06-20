@@ -9,6 +9,7 @@ import L from 'leaflet'
 import RiderMapView, { RiderMapViewRef, MapMarker, MapPolyline } from '@/components/RiderMapView'
 import RouteSearchBar from '@/components/RouteSearchBar'
 import RideOfferSheet from '@/components/RideOfferSheet'
+import HomeRideTrackingSheet from '@/components/HomeRideTrackingSheet'
 import PromoBanner from '@/components/PromoBanner'
 import LocationGate from '@/components/LocationGate'
 import ChamaHeader from '@/components/ChamaHeader'
@@ -23,11 +24,26 @@ import {
   estimateFallbackRoute,
   generateStableNearbyDrivers,
   nudgeNearbyDrivers,
+  getRecentDestinations,
+  saveRecentDestination,
+  filterPlacesByQuery,
   type NearbyDriverMarker,
 } from '@/utils/navigation'
-import { useEstimateFareQuery, calculateFareFromRoute, useActiveRideQuery } from '@/hooks/queries/useRideQueries'
+import { useEstimateFareQuery, calculateFareFromRoute, rideKeys } from '@/hooks/queries/useRideQueries'
+import { useQueryClient } from '@tanstack/react-query'
+import { calculateChamaFare, pickTrustedFare } from '@/utils/fareCalculator'
+import { useHomeRideTracking } from '@/hooks/useHomeRideTracking'
 import { useAppBanners } from '@/hooks/useAppBanners'
 import { getCurrentLocation, startLiveLocationTracking, type GeoCoords } from '@/utils/geolocation'
+import {
+  getPersistedActiveRideId,
+  getPersistedRideSnapshot,
+  persistActiveRideId,
+  persistRideSnapshot,
+  clearActiveRideSession,
+} from '@/utils/activeRideSession'
+import { purgeTerminalDemoRide } from '@/utils/demoRideBridge'
+import { dismissRide, isRideDismissed } from '@/utils/dismissedRides'
 
 const CATEGORIES = [
   { id: 1, name: 'Moto', color: '#39ff6a', icon: '🏍️', description: 'Rápido e econômico' },
@@ -62,14 +78,22 @@ function nearbyCarIcon(heading: number) {
   })
 }
 
-function HomeMapContent({ seedCoords }: { seedCoords?: GeoCoords | null }) {
-  const navigate = useNavigate()
+function HomeMapContent({
+  seedCoords,
+  initialTrackingId,
+}: {
+  seedCoords?: GeoCoords | null
+  initialTrackingId?: string | number | null
+}) {
   const authStore = useAuthStore()
   const ridesStore = useRidesStore()
   const walletStore = useWalletStore()
+  const queryClient = useQueryClient()
   const mapRef = useRef<RiderMapViewRef | null>(null)
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const destSearchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const destSearchAbortRef = useRef<AbortController | null>(null)
+  const destSearchSeqRef = useRef(0)
   const seedAppliedRef = useRef(false)
   const hasOriginAddressRef = useRef(false)
   const locationErrorShownRef = useRef(false)
@@ -84,6 +108,8 @@ function HomeMapContent({ seedCoords }: { seedCoords?: GeoCoords | null }) {
   const [destinationCoords, setDestinationCoords] = useState<{ lat: number; lng: number } | null>(null)
   const [originSuggestions, setOriginSuggestions] = useState<Array<{ lat: number; lng: number; address: string }>>([])
   const [destSuggestions, setDestSuggestions] = useState<Array<{ lat: number; lng: number; address: string }>>([])
+  const [recentDestinations, setRecentDestinations] = useState<Array<{ lat: number; lng: number; address: string }>>([])
+  const [destSearchLoading, setDestSearchLoading] = useState(false)
   const [originFocused, setOriginFocused] = useState(false)
   const [destFocused, setDestFocused] = useState(false)
   const [routePoints, setRoutePoints] = useState<[number, number][]>([])
@@ -95,10 +121,108 @@ function HomeMapContent({ seedCoords }: { seedCoords?: GeoCoords | null }) {
   const [paymentMethod, setPaymentMethod] = useState('cash')
   const [hasCard, setHasCard] = useState(false)
   const [nearbyDrivers, setNearbyDrivers] = useState<NearbyDriverMarker[]>([])
+  const [trackingRideId, setTrackingRideId] = useState<string | number | null>(() => {
+    if (initialTrackingId != null && initialTrackingId !== '') {
+      if (isRideDismissed(initialTrackingId)) return null
+      return initialTrackingId
+    }
+    purgeTerminalDemoRide()
+    const snap = getPersistedRideSnapshot()
+    if (snap?.status === 'completed' || snap?.status === 'cancelled') return null
+    const persisted = getPersistedActiveRideId()
+    if (persisted && isRideDismissed(persisted)) return null
+    return persisted
+  })
 
-  const showOfferSheet = !!destinationCoords
+  const showOfferSheet = !!destinationCoords && !trackingRideId
   const { banner } = useAppBanners('rider', 'home')
-  const { data: activeRide } = useActiveRideQuery()
+
+  const effectiveTrackingId =
+    trackingRideId && !isRideDismissed(trackingRideId) ? trackingRideId : null
+
+  const rideTracking = useHomeRideTracking(effectiveTrackingId)
+  const isTracking = !!effectiveTrackingId
+
+  useEffect(() => {
+    purgeTerminalDemoRide()
+
+    const snap = getPersistedRideSnapshot()
+    if (snap?.status === 'cancelled' || snap?.status === 'completed') {
+      clearActiveRideSession()
+      ridesStore.clearCurrentRide()
+      return
+    }
+
+    if (snap && !ridesStore.currentRide) {
+      ridesStore.setCurrentRide(snap)
+    }
+    const persistedId = getPersistedActiveRideId()
+    const id = initialTrackingId ?? trackingRideId ?? persistedId
+    if (id && !isRideDismissed(id) && snap?.status !== 'completed') {
+      if (!trackingRideId) setTrackingRideId(id)
+      void ridesStore.fetchRide(id)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- bootstrap once
+  }, [])
+
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== 'chama_demo_ride' || !effectiveTrackingId) return
+      void queryClient.invalidateQueries({ queryKey: rideKeys.detail(effectiveTrackingId) })
+      void queryClient.invalidateQueries({ queryKey: rideKeys.active })
+      void ridesStore.fetchRide(effectiveTrackingId)
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [effectiveTrackingId, queryClient, ridesStore])
+
+  useEffect(() => {
+    if (initialTrackingId) {
+      setTrackingRideId(initialTrackingId)
+      persistActiveRideId(initialTrackingId)
+      void ridesStore.fetchRide(initialTrackingId)
+    }
+  }, [initialTrackingId])
+
+  useEffect(() => {
+    if (effectiveTrackingId) {
+      persistActiveRideId(effectiveTrackingId)
+    } else {
+      clearActiveRideSession()
+    }
+  }, [effectiveTrackingId])
+
+  useEffect(() => {
+    if (isTracking && rideTracking.displayRide) {
+      const r = rideTracking.displayRide
+      if (!['completed', 'cancelled'].includes(r.status || '')) {
+        persistRideSnapshot(r)
+      }
+    }
+  }, [isTracking, rideTracking.displayRide])
+
+  useEffect(() => {
+    if (!isTracking || !rideTracking.mapDriverLocation) return
+    mapRef.current?.setCenter(rideTracking.mapDriverLocation.lat, rideTracking.mapDriverLocation.lng)
+  }, [isTracking, rideTracking.mapDriverLocation?.lat, rideTracking.mapDriverLocation?.lng])
+
+  const finishTracking = useCallback(() => {
+    const id = effectiveTrackingId ?? trackingRideId
+    if (id) {
+      dismissRide(id)
+      queryClient.removeQueries({ queryKey: rideKeys.detail(id) })
+      queryClient.removeQueries({ queryKey: rideKeys.location(id) })
+    }
+    setTrackingRideId(null)
+    setDestinationInput('')
+    setDestinationCoords(null)
+    setRoutePoints([])
+    setRouteDistance(null)
+    setRouteDuration(null)
+    ridesStore.clearCurrentRide()
+    queryClient.setQueryData(rideKeys.active, null)
+    void queryClient.invalidateQueries({ queryKey: rideKeys.active })
+  }, [effectiveTrackingId, trackingRideId, ridesStore, queryClient])
 
   const promoBanner = banner ? (
     <PromoBanner
@@ -120,32 +244,47 @@ function HomeMapContent({ seedCoords }: { seedCoords?: GeoCoords | null }) {
     routeDistance,
     routeDuration,
     selectedCategoryId,
+    selectedCategory,
     showOfferSheet
   )
 
+  useEffect(() => {
+    const r = rideTracking.displayRide
+    if (!r || !isTracking) return
+    if (r.origin_lat != null && r.origin_lng != null) {
+      setOriginCoords({ lat: r.origin_lat, lng: r.origin_lng })
+    }
+    if (r.dest_lat != null && r.dest_lng != null) {
+      setDestinationCoords({ lat: r.dest_lat, lng: r.dest_lng })
+    }
+  }, [rideTracking.displayRide?.id, isTracking])
+
   const categoriesWithPrice = useMemo(() => {
     if (!routeDistance || !routeDuration) {
-      return CATEGORIES.map((cat) => ({ ...cat, fare: 0, estimatedPrice: 'R$ 0,00' }))
+      return CATEGORIES.map((cat) => ({ ...cat, fare: 0, estimatedPrice: '—' }))
     }
 
+    const fmt = (v: number) =>
+      new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
+
     return CATEGORIES.map((cat) => {
-      const local = calculateFareFromRoute(routeDistance, routeDuration, cat.name)
-      const serverCarro =
-        selectedCategory === 'Carro' && serverFare?.estimated_fare
-          ? serverFare.estimated_fare
-          : calculateFareFromRoute(routeDistance, routeDuration, 'Carro')
-      const scale = serverCarro > 0 && local > 0 && cat.name === 'Carro' ? serverCarro / local : 1
-      const fare =
-        cat.name === 'Carro' && serverFare?.estimated_fare
-          ? serverFare.estimated_fare
-          : Math.round(calculateFareFromRoute(routeDistance, routeDuration, cat.name) * scale * 100) / 100
+      const breakdown = calculateChamaFare(routeDistance, routeDuration, cat.name)
+      const localFare = breakdown.estimated_fare
+      const serverVal = cat.id === selectedCategoryId ? serverFare?.estimated_fare : null
+      const fare = pickTrustedFare(localFare, serverVal)
       return {
         ...cat,
         fare,
-        estimatedPrice: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(fare),
+        estimatedPrice: fmt(fare),
+        surgeLabels: breakdown.surge_labels,
       }
     })
-  }, [routeDistance, routeDuration, serverFare, selectedCategory])
+  }, [routeDistance, routeDuration, serverFare, selectedCategoryId])
+
+  const fareBreakdown = useMemo(() => {
+    if (!routeDistance || !routeDuration) return null
+    return calculateChamaFare(routeDistance, routeDuration, selectedCategory)
+  }, [routeDistance, routeDuration, selectedCategory])
 
   const selectedFare = useMemo(() => {
     const cat = categoriesWithPrice.find((c) => c.name === selectedCategory)
@@ -154,6 +293,28 @@ function HomeMapContent({ seedCoords }: { seedCoords?: GeoCoords | null }) {
 
   const mapMarkers = useMemo(() => {
     const markers: MapMarker[] = []
+    const tr = rideTracking.displayRide
+
+    if (isTracking && tr) {
+      if (tr.origin_lat != null && tr.origin_lng != null) {
+        markers.push({
+          id: 'origin',
+          position: [tr.origin_lat, tr.origin_lng],
+          icon: destMarkerIcon(),
+          popup: tr.origin_address || tr.pickup_address || 'Você — embarque',
+        })
+      }
+      if (tr.dest_lat != null && tr.dest_lng != null) {
+        markers.push({
+          id: 'destination',
+          position: [tr.dest_lat, tr.dest_lng],
+          icon: destMarkerIcon(),
+          popup: tr.destination_address || 'Destino',
+        })
+      }
+      rideTracking.trackingMarkers.forEach((m) => markers.push(m))
+      return markers
+    }
 
     if (!destinationCoords && nearbyDrivers.length) {
       nearbyDrivers.forEach((d) => {
@@ -191,12 +352,25 @@ function HomeMapContent({ seedCoords }: { seedCoords?: GeoCoords | null }) {
       })
     }
     return markers
-  }, [originCoords, destinationCoords, originInput, destinationInput, nearbyDrivers, userLiveCoords])
+  }, [
+    isTracking,
+    rideTracking.displayRide,
+    rideTracking.trackingMarkers,
+    originCoords,
+    destinationCoords,
+    originInput,
+    destinationInput,
+    nearbyDrivers,
+    userLiveCoords,
+  ])
 
   const mapPolylines = useMemo<MapPolyline[]>(() => {
+    if (isTracking && rideTracking.trackingPolylines.length) {
+      return rideTracking.trackingPolylines
+    }
     if (!routePoints.length) return []
     return [{ points: routePoints, color: '#39ff6a', weight: 5 }]
-  }, [routePoints])
+  }, [isTracking, rideTracking.trackingPolylines, routePoints])
 
   const applyOriginFromGps = useCallback(async (lat: number, lng: number, updateInput = true) => {
     setOriginCoords({ lat, lng })
@@ -238,6 +412,10 @@ function HomeMapContent({ seedCoords }: { seedCoords?: GeoCoords | null }) {
   }, [seedCoords, applyOriginFromGps, authStore])
 
   useEffect(() => {
+    setRecentDestinations(getRecentDestinations())
+  }, [])
+
+  useEffect(() => {
     walletStore.fetchWallet().then(() => {
       setHasCard(useWalletStore.getState().paymentMethods.length > 0)
     })
@@ -251,31 +429,55 @@ function HomeMapContent({ seedCoords }: { seedCoords?: GeoCoords | null }) {
 
   const runOriginSearch = useCallback(async (value: string) => {
     const q = value.trim()
-    if (q.length < 2) {
+    if (q.length < 1) {
       setOriginSuggestions([])
       return
     }
-    const near = originCoords
-      ? { lat: originCoords.lat, lng: originCoords.lng, limit: 8, radiusKm: 40 }
-      : undefined
-    const results = await searchAddresses(q, near)
+    const anchor = originCoords ?? userLiveCoords ?? { lat: -22.9068, lng: -43.1729 }
+    const near = { lat: anchor.lat, lng: anchor.lng, limit: 8, radiusKm: 40 }
+    const results = await searchAddresses(q, near, {
+      onPartial: (partial) => {
+        if (originFocusedRef.current) setOriginSuggestions(partial)
+      },
+    })
     if (originFocusedRef.current) setOriginSuggestions(results)
-  }, [originCoords])
+  }, [originCoords, userLiveCoords])
 
   const runDestSearch = useCallback(async (value: string) => {
     const q = value.trim()
-    if (q.length < 2) {
+    if (q.length < 1) {
       setDestSuggestions([])
+      setDestSearchLoading(false)
       return
     }
-    const near = originCoords
-      ? { lat: originCoords.lat, lng: originCoords.lng, limit: 10, radiusKm: 250, wide: true }
-      : undefined
-    const results = await searchAddresses(q, near, { wide: true })
-    if (destFocusedRef.current || pendingDestQueryRef.current === q) {
+
+    destSearchAbortRef.current?.abort()
+    const ac = new AbortController()
+    destSearchAbortRef.current = ac
+    const seq = ++destSearchSeqRef.current
+
+    setDestSearchLoading(true)
+    const anchor = originCoords ?? userLiveCoords ?? { lat: -22.9068, lng: -43.1729 }
+    const near = { lat: anchor.lat, lng: anchor.lng, limit: 10, radiusKm: 80, wide: true }
+
+    try {
+      const results = await searchAddresses(q, near, {
+        wide: true,
+        signal: ac.signal,
+        onPartial: (partial) => {
+          if (seq !== destSearchSeqRef.current) return
+          setDestSuggestions(partial)
+          setDestSearchLoading(false)
+        },
+      })
+      if (seq !== destSearchSeqRef.current) return
       setDestSuggestions(results)
+    } catch {
+      if (seq !== destSearchSeqRef.current) return
+    } finally {
+      if (seq === destSearchSeqRef.current) setDestSearchLoading(false)
     }
-  }, [originCoords])
+  }, [originCoords, userLiveCoords])
 
   useEffect(() => {
     if (!originCoords || !pendingDestQueryRef.current) return
@@ -343,22 +545,41 @@ function HomeMapContent({ seedCoords }: { seedCoords?: GeoCoords | null }) {
 
   const debouncedOriginSearch = (value: string) => {
     if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current)
-    if (value.trim().length < 2) {
+    const q = value.trim()
+    if (q.length < 1) {
       setOriginSuggestions([])
       return
     }
-    searchDebounceRef.current = setTimeout(() => void runOriginSearch(value), 350)
+    searchDebounceRef.current = setTimeout(() => void runOriginSearch(value), 50)
   }
 
   const debouncedDestSearch = (value: string) => {
     pendingDestQueryRef.current = value.trim()
     if (destSearchDebounceRef.current) clearTimeout(destSearchDebounceRef.current)
-    if (value.trim().length < 2) {
+    const q = value.trim()
+    if (q.length < 1) {
       setDestSuggestions([])
+      setDestSearchLoading(false)
       pendingDestQueryRef.current = ''
+      destSearchAbortRef.current?.abort()
       return
     }
-    destSearchDebounceRef.current = setTimeout(() => void runDestSearch(value), 350)
+    const instant = filterPlacesByQuery(getRecentDestinations(), q)
+    if (instant.length) setDestSuggestions(instant)
+    setDestSearchLoading(true)
+    destSearchDebounceRef.current = setTimeout(() => void runDestSearch(value), 50)
+  }
+
+  const handleDestFocus = () => {
+    destFocusedRef.current = true
+    setDestFocused(true)
+    setRecentDestinations(getRecentDestinations())
+    if (destinationInput.trim().length >= 1) {
+      const instant = filterPlacesByQuery(getRecentDestinations(), destinationInput)
+      if (instant.length) setDestSuggestions(instant)
+      setDestSearchLoading(true)
+      void runDestSearch(destinationInput)
+    }
   }
 
   const selectOrigin = (place: { lat: number; lng: number; address: string }) => {
@@ -374,11 +595,15 @@ function HomeMapContent({ seedCoords }: { seedCoords?: GeoCoords | null }) {
     setDestinationCoords({ lat: place.lat, lng: place.lng })
     setDestSuggestions([])
     setDestFocused(false)
+    setDestSearchLoading(false)
+    saveRecentDestination(place)
+    setRecentDestinations(getRecentDestinations())
   }
 
   const handleMapClick = async (position: [number, number]) => {
+    if (isTracking) return
     if (!originCoords) {
-      toast.error('Aguardando sua localização...')
+      toast.error('Aguarde o GPS definir sua origem')
       return
     }
     const addr = await reverseGeocode(position[0], position[1])
@@ -452,9 +677,16 @@ function HomeMapContent({ seedCoords }: { seedCoords?: GeoCoords | null }) {
         duration_seconds: duration,
       })
       if (result.success && (result.ride || ridesStore.currentRide)) {
-        navigate(`/ride/${result.ride?.id || ridesStore.currentRide!.id}`)
+        const rideId = result.ride?.id || ridesStore.currentRide!.id
+        setTrackingRideId(rideId)
+        toast.success('Corrida solicitada! Buscando motorista...')
       } else {
-        toast.error(result.message || 'Erro ao solicitar corrida')
+        const msg = result.message || 'Erro ao solicitar corrida'
+        if (/latitude|longitude|localiza/i.test(msg)) {
+          toast.error('Origem (GPS) não definida. Toque no botão GPS e tente de novo.')
+        } else {
+          toast.error(msg)
+        }
       }
     } catch {
       toast.error('Erro ao solicitar corrida')
@@ -466,11 +698,11 @@ function HomeMapContent({ seedCoords }: { seedCoords?: GeoCoords | null }) {
   const handleConfirmRide = async () => {
     if (requesting || priceLoading) return
     if (!originCoords) {
-      toast.error('Aguarde sua localização')
+      toast.error('Aguarde o GPS definir sua origem (embarque)')
       return
     }
     if (!destinationCoords) {
-      toast.error('Escolha um endereço na lista de sugestões')
+      toast.error('Escolha o destino na lista de sugestões abaixo')
       return
     }
 
@@ -495,19 +727,20 @@ function HomeMapContent({ seedCoords }: { seedCoords?: GeoCoords | null }) {
       }
     }
 
-    const localCarro = calculateFareFromRoute(distance!, duration!, 'Carro')
-    const scale =
-      serverFare?.estimated_fare && serverFare.estimated_fare > 0 && localCarro > 0
-        ? serverFare.estimated_fare / localCarro
-        : 1
-    const fare =
-      Math.round(calculateFareFromRoute(distance!, duration!, selectedCategory) * scale * 100) / 100
+    const fare = selectedFare > 0 ? selectedFare : calculateFareFromRoute(distance!, duration!, selectedCategory)
 
     await requestRideWithData(dest, destAddress, distance, duration, fare)
   }
 
   const canConfirm =
-    !!destinationCoords && !!originCoords && !routeLoading && !requesting && selectedFare > 0
+    !!destinationCoords &&
+    !!originCoords &&
+    !requesting &&
+    !routeLoading &&
+    !fareLoading &&
+    selectedFare > 0 &&
+    routeDistance != null &&
+    routeDuration != null
 
   const recenterMap = async () => {
     if (userLiveCoords) {
@@ -531,8 +764,8 @@ function HomeMapContent({ seedCoords }: { seedCoords?: GeoCoords | null }) {
   }
 
   return (
-    <div className={`chama-home-body${showOfferSheet ? ' chama-home--offer' : ''}`}>
-      <main className={`chama-home-main${showOfferSheet ? ' chama-home-main--offer' : ' chama-home-main--map'}`}>
+    <div className={`chama-home-body${showOfferSheet || isTracking ? ' chama-home--offer chama-home-body--sheet-open' : ''}`}>
+      <main className={`chama-home-main${showOfferSheet || isTracking ? ' chama-home-main--offer' : ' chama-home-main--map'}`}>
         <div className="chama-map-stage">
           <RiderMapView
             ref={mapRef}
@@ -542,22 +775,13 @@ function HomeMapContent({ seedCoords }: { seedCoords?: GeoCoords | null }) {
             zoom={15}
             markers={mapMarkers}
             polyline={mapPolylines}
-            autoFit={!!routePoints.length}
+            autoFit={!!routePoints.length || isTracking}
             onMapClick={handleMapClick}
             onMarkerDrag={handleMarkerDrag}
           />
 
+          {!isTracking && (
           <div className="chama-search-wrap">
-            {activeRide && !['completed', 'cancelled'].includes(activeRide.status) && (
-              <button
-                type="button"
-                className="chama-active-ride-banner mb-2 w-full rounded-xl border border-[#39ff6a]/40 bg-[#39ff6a]/10 px-4 py-3 text-left text-sm"
-                onClick={() => navigate(`/ride/${activeRide.id}`)}
-              >
-                <span className="font-semibold text-[#39ff6a]">Corrida em andamento</span>
-                <span className="mt-1 block text-gray-300">Toque para retomar o acompanhamento</span>
-              </button>
-            )}
             <RouteSearchBar
               originInput={originInput}
               destinationInput={destinationInput}
@@ -565,6 +789,8 @@ function HomeMapContent({ seedCoords }: { seedCoords?: GeoCoords | null }) {
               destFocused={destFocused}
               originSuggestions={originSuggestions}
               destSuggestions={destSuggestions}
+              recentDestinations={recentDestinations}
+              destLoading={destSearchLoading}
               onOriginChange={(v) => {
                 setOriginInput(v)
                 debouncedOriginSearch(v)
@@ -583,13 +809,7 @@ function HomeMapContent({ seedCoords }: { seedCoords?: GeoCoords | null }) {
                 originFocusedRef.current = true
                 setOriginFocused(true)
               }}
-              onDestFocus={() => {
-                destFocusedRef.current = true
-                setDestFocused(true)
-                if (destinationInput.trim().length >= 2) {
-                  void runDestSearch(destinationInput)
-                }
-              }}
+              onDestFocus={handleDestFocus}
               onOriginBlur={() => {
                 originFocusedRef.current = false
                 setOriginFocused(false)
@@ -610,8 +830,13 @@ function HomeMapContent({ seedCoords }: { seedCoords?: GeoCoords | null }) {
               }}
             />
           </div>
+          )}
 
-          {!showOfferSheet && originCoords && (
+          {isTracking && rideTracking.etaLabel && (
+            <div className="chama-eta-badge">{rideTracking.etaLabel}</div>
+          )}
+
+          {!showOfferSheet && !isTracking && originCoords && (
             <div className="chama-map-nearby-badge">
               {nearbyDrivers.length} motorista{nearbyDrivers.length !== 1 ? 's' : ''} por perto
             </div>
@@ -662,11 +887,35 @@ function HomeMapContent({ seedCoords }: { seedCoords?: GeoCoords | null }) {
             confirmDisabled={!canConfirm}
             confirming={requesting}
             confirmLabel={`Chamar ${selectedCategory}`}
+            surgeHint={
+              fareBreakdown?.surge_labels.length
+                ? `Tarifa dinâmica: ${fareBreakdown.surge_labels.join(' · ')}`
+                : undefined
+            }
           />
+        )}
+
+        {isTracking && (
+          rideTracking.displayRide ? (
+            <HomeRideTrackingSheet
+              ride={rideTracking.displayRide}
+              isSearching={rideTracking.isSearching}
+              isPaid={rideTracking.isPaid}
+              isCompleted={rideTracking.isCompleted}
+              demoEnabled={rideTracking.demoEnabled}
+              onCancel={finishTracking}
+              onFinished={finishTracking}
+            />
+          ) : (
+            <div className="chama-offer-sheet-99 flex flex-col items-center px-6 py-10">
+              <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-[#39ff6a]/30 border-t-[#39ff6a]" />
+              <p className="text-sm text-gray-400">Carregando corrida...</p>
+            </div>
+          )
         )}
       </main>
 
-      {!showOfferSheet && <ChamaTabBar items={riderTabBarItems} />}
+      <ChamaTabBar items={riderTabBarItems} />
     </div>
   )
 }
@@ -693,9 +942,11 @@ export default function HomeView() {
 function HomeShell({
   seedCoords,
   onLocationGranted,
+  trackingRideId,
 }: {
-  seedCoords: GeoCoords | null
-  onLocationGranted: (coords?: GeoCoords) => void
+  seedCoords?: GeoCoords | null
+  onLocationGranted?: (coords?: GeoCoords) => void
+  trackingRideId?: string | number | null
 }) {
   const authStore = useAuthStore()
   const navigate = useNavigate()
@@ -735,9 +986,11 @@ function HomeShell({
         onLogout={logout}
       />
 
-      <LocationGate logoUrl={CHAMA_LOGO_URL} appName={CHAMA_APP_NAME} onGranted={onLocationGranted}>
-        <HomeMapContent seedCoords={seedCoords} />
+      <LocationGate logoUrl={CHAMA_LOGO_URL} appName={CHAMA_APP_NAME} onGranted={onLocationGranted ?? (() => {})}>
+        <HomeMapContent seedCoords={seedCoords} initialTrackingId={trackingRideId} />
       </LocationGate>
     </div>
   )
 }
+
+export { HomeShell }

@@ -4,9 +4,13 @@ import App from './App'
 import 'leaflet/dist/leaflet.css'
 import './assets/main.css'
 
-if ('serviceWorker' in navigator && window.location.hostname !== 'localhost') {
+if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/pwa-rider/sw.js', { scope: '/pwa-rider/' }).catch(() => {})
+    const swPath = window.location.pathname.startsWith('/pwa-rider')
+      ? '/pwa-rider/sw.js'
+      : '/sw.js'
+    const scope = window.location.pathname.startsWith('/pwa-rider') ? '/pwa-rider/' : '/'
+    navigator.serviceWorker.register(swPath, { scope }).catch(() => {})
   })
 }
 

@@ -17,6 +17,7 @@ export default function ChamaTabBar({ items }: ChamaTabBarProps) {
   const location = useLocation()
 
   const isActive = (path: string, exact = false) => {
+    if (path === '/' && /^\/ride\/\d+/.test(location.pathname)) return true
     if (exact) return location.pathname === path
     return location.pathname.startsWith(path)
   }

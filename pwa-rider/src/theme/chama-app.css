@@ -283,6 +283,7 @@ body.chama-web.pwa-driver {
   border-radius: 16px;
   padding: 0.85rem 0.75rem;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+  overflow: visible;
 }
 
 .chama-route-row {
@@ -447,9 +448,9 @@ body.chama-web.pwa-driver {
   backdrop-filter: blur(12px);
   border: 1px solid rgba(57, 255, 106, 0.25);
   border-radius: 12px;
-  max-height: min(220px, 38vh);
+  max-height: min(240px, 42vh);
   overflow-y: auto;
-  z-index: 900;
+  z-index: 1200;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
 }
 
@@ -483,6 +484,29 @@ body.chama-web.pwa-driver {
 
 .chama-suggestions button:hover {
   background: rgba(57, 255, 106, 0.08);
+}
+
+.chama-suggestions-section {
+  padding: 0.45rem 0.75rem 0.25rem;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.chama-suggestions-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.chama-route-loading {
+  pointer-events: none;
+  opacity: 0.9;
 }
 
 .chama-price-sheet {
@@ -860,11 +884,100 @@ body.chama-web.pwa-driver .driver-home {
   background: #f7f9f8;
   border-radius: 22px 22px 0 0;
   box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.18);
-  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
-  max-height: 58vh;
+  max-height: min(78vh, calc(100vh - 11.5rem));
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+.chama-offer-sheet-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: calc(6.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+.chama-offer-confirm-inline {
+  padding: 8px 16px 4px;
+  flex-shrink: 0;
+}
+
+.chama-offer-sheet-footer {
+  flex-shrink: 0;
+  padding: 10px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(180deg, rgba(247, 249, 248, 0) 0%, #f7f9f8 24%);
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.chama-offer-confirm-btn {
+  margin-top: 0;
+  width: 100%;
+}
+
+.chama-home-tracking-sheet {
+  max-height: min(68vh, calc(100vh - 11.5rem));
+}
+
+.chama-home-tracking-sheet--minimized {
+  max-height: none;
+}
+
+.chama-home-tracking-sheet .chama-offer-sheet-scroll {
+  padding-bottom: calc(6.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+.chama-tracking-minibar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px calc(14px + env(safe-area-inset-bottom, 0px));
+}
+
+.chama-tracking-minibar-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.chama-tracking-minibar-text p {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #06220f;
+}
+
+.chama-tracking-minibar-text small {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.chama-tracking-sheet-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.chama-tracking-close-btn {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: #fff;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.chama-home-body--sheet-open {
+  padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
 }
 
 .chama-offer-sheet-handle {

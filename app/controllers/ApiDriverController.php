@@ -217,31 +217,81 @@ class ApiDriverController extends ApiBaseController
 			return $this->jsonError('Não autorizado', 401);
 		}
 
-		Input::merge(array(
-			'token' => $walker->token,
-			'id' => $walker->id,
-			'request_id' => $id,
-			'time' => 1,
-		));
+		$request = Requests::find($id);
+		if (!$request || (int) $request->confirmed_walker !== (int) $walker->id) {
+			return $this->jsonError('Corrida não encontrada', 404);
+		}
+		if (!chama_ride_is_destination_arrived($id)) {
+			return $this->jsonError('Marque chegada no destino antes de finalizar', 422);
+		}
+		if (!$request->is_paid) {
+			return $this->jsonError('Aguarde o passageiro confirmar o pagamento', 422);
+		}
 
-		$complete = $this->decodeLegacyResponse((new WalkerController())->request_walk_completed());
-		if (empty($complete['success'])) {
-			return $this->jsonError(isset($complete['error']) ? $complete['error'] : 'Erro ao finalizar', 422);
+		$body = $this->jsonInput();
+		$owner = Owner::find($request->owner_id);
+
+		$latitude = isset($body['latitude']) ? $body['latitude']
+			: ($request->D_latitude ? $request->D_latitude : ($owner ? $owner->latitude : -22.9068));
+		$longitude = isset($body['longitude']) ? $body['longitude']
+			: ($request->D_longitude ? $request->D_longitude : ($owner ? $owner->longitude : -43.1729));
+		$distance = isset($body['distance']) ? (float) $body['distance']
+			: ((float) $request->distance > 0 ? (float) $request->distance : 1);
+		$time = isset($body['time']) ? (float) $body['time']
+			: ((float) $request->time > 0 ? (float) $request->time : 1);
+
+		if (!$request->is_started) {
+			$request->is_started = 1;
+			$request->save();
 		}
 
 		Input::merge(array(
 			'token' => $walker->token,
 			'id' => $walker->id,
 			'request_id' => $id,
-			'time' => isset($complete['time']) ? $complete['time'] : 1,
+			'latitude' => $latitude,
+			'longitude' => $longitude,
+			'distance' => $distance,
+			'time' => $time,
 		));
-		$payment = $this->decodeLegacyResponse((new WalkerController())->pre_payment());
+
+		$complete = $this->decodeLegacyResponse((new WalkerController())->request_walk_completed());
+		if (empty($complete['success'])) {
+			$legacyError = isset($complete['error']) ? $complete['error'] : 'Erro ao finalizar';
+			Log::warning('completeRide legacy fallback: ' . $legacyError . ' ride=' . $id);
+
+			if ((float) $request->distance <= 0) {
+				$request->distance = $distance;
+			}
+			if ((float) $request->time <= 0) {
+				$request->time = $time;
+			}
+			$request->is_completed = 1;
+			$request->save();
+			chama_wallet_settle_ride($request);
+			Walker::where('id', $walker->id)->update(array('is_available' => 1));
+
+			return Response::json(array(
+				'success' => true,
+				'fare' => (float) $request->total,
+				'ride' => $this->transformDriverRide($id, $walker),
+			));
+		}
+
+		Input::merge(array(
+			'token' => $walker->token,
+			'id' => $walker->id,
+			'request_id' => $id,
+			'time' => isset($complete['time']) ? $complete['time'] : $time,
+		));
+		$this->decodeLegacyResponse((new WalkerController())->pre_payment());
 
 		$request = Requests::find($id);
 		if ($request) {
 			$request->is_completed = 1;
 			$request->save();
 			chama_wallet_settle_ride($request);
+			Walker::where('id', $walker->id)->update(array('is_available' => 1));
 		}
 		$fare = $request ? (float) $request->total : 0;
 

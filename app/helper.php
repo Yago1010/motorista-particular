@@ -779,7 +779,7 @@ function chama_cancel_owner_pending_rides($ownerId)
 
 function chama_category_fare_multiplier($categoryId)
 {
-	$map = array(1 => 0.72, 2 => 1.0, 3 => 1.58);
+	$map = array(1 => 0.88, 2 => 1.0, 3 => 1.45);
 	return isset($map[(int) $categoryId]) ? $map[(int) $categoryId] : 1.0;
 }
 
@@ -789,40 +789,63 @@ function chama_category_label($categoryId)
 	return isset($map[(int) $categoryId]) ? $map[(int) $categoryId] : 'Carro';
 }
 
-function chama_calculate_fare($distanceMeters, $durationSeconds, $categoryId = 2)
+function chama_fare_surge_multiplier($rain = false)
+{
+	$multiplier = 1.0;
+	$labels = array();
+	$hour = (int) date('G');
+	$day = (int) date('w');
+
+	if ($hour >= 22 || $hour < 6) {
+		$multiplier *= 1.15;
+		$labels[] = 'Noturno';
+	}
+	if ($day === 0 || $day === 6) {
+		$multiplier *= 1.10;
+		$labels[] = 'Fim de semana';
+	}
+	if ($rain) {
+		$multiplier *= 1.12;
+		$labels[] = 'Chuva';
+	}
+	if ($multiplier > 1.35) {
+		$multiplier = 1.35;
+	}
+	return array('multiplier' => round($multiplier, 2), 'labels' => $labels);
+}
+
+function chama_calculate_fare($distanceMeters, $durationSeconds, $categoryId = 2, $rain = false)
 {
 	$distanceMeters = max(0, (float) $distanceMeters);
 	$durationSeconds = max(0, (float) $durationSeconds);
+	$km = $distanceMeters * 0.001;
+	$min = $durationSeconds / 60.0;
 
-	$settings = Settings::where('key', 'default_distance_unit')->first();
-	$unit = $settings ? (int) $settings->value : 0;
+	$rates = array(
+		1 => array('base' => 3.5, 'per_km' => 1.35, 'per_min' => 0.22),
+		2 => array('base' => 4.0, 'per_km' => 1.70, 'per_min' => 0.25),
+		3 => array('base' => 6.0, 'per_km' => 2.40, 'per_min' => 0.35),
+	);
+	$r = isset($rates[(int) $categoryId]) ? $rates[(int) $categoryId] : $rates[2];
+	$catMult = chama_category_fare_multiplier($categoryId);
 
-	$setbase = Settings::where('key', 'base_price')->first();
-	$basePrice = $setbase ? (float) $setbase->value : 8;
+	$base = $r['base'] * $catMult;
+	$distanceCost = $km * $r['per_km'] * $catMult;
+	$timeCost = $min * $r['per_min'] * $catMult;
+	$subtotal = $base + $distanceCost + $timeCost;
 
-	$setdistance = Settings::where('key', 'price_per_unit_distance')->first();
-	$pricePerDist = $setdistance ? (float) $setdistance->value : 3.5;
-
-	$settime = Settings::where('key', 'price_per_unit_time')->first();
-	$pricePerTime = $settime ? (float) $settime->value : 0.5;
-
-	if ($unit == 0) {
-		$distanceCost = $pricePerDist * ($distanceMeters * 0.001);
-	} else {
-		$distanceCost = $pricePerDist * ($distanceMeters * 0.000621371);
-	}
-	$timeCost = $pricePerTime * ($durationSeconds * 0.0166667);
-	$subtotal = $basePrice + $distanceCost + $timeCost;
-	$multiplier = chama_category_fare_multiplier($categoryId);
-	$total = round($subtotal * $multiplier, 2);
+	$surge = chama_fare_surge_multiplier($rain);
+	$total = round($subtotal * $surge['multiplier'], 2);
 
 	return array(
 		'estimated_fare' => $total,
-		'base_price' => round($basePrice * $multiplier, 2),
-		'price_per_km' => round($pricePerDist * $multiplier, 2),
-		'price_per_min' => round($pricePerTime * $multiplier, 2),
-		'distance_cost' => round($distanceCost * $multiplier, 2),
-		'time_cost' => round($timeCost * $multiplier, 2),
+		'base_price' => round($base, 2),
+		'price_per_km' => round($r['per_km'] * $catMult, 2),
+		'price_per_min' => round($r['per_min'] * $catMult, 2),
+		'distance_cost' => round($distanceCost, 2),
+		'time_cost' => round($timeCost, 2),
+		'surge_multiplier' => $surge['multiplier'],
+		'surge_labels' => $surge['labels'],
 		'currency' => 'BRL',
 		'category_id' => (int) $categoryId,
 	);

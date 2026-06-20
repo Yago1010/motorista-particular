@@ -1,5 +1,13 @@
 import { create } from 'zustand'
 import api from '@/services/api'
+import { publishDemoRide, getDemoRide, isDemoRiderToken, isDemoRideId, clearDemoRide } from '@/utils/demoRideBridge'
+import {
+  clearActiveRideSession,
+  persistActiveRideId,
+  persistRideSnapshot,
+  getPersistedRideSnapshot,
+} from '@/utils/activeRideSession'
+import { dismissRide } from '@/utils/dismissedRides'
 
 export interface RideDriver {
   first_name: string
@@ -22,6 +30,9 @@ export interface Ride {
   destination_address?: string
   fare?: number
   estimated_fare?: number
+  distance_km?: number
+  duration_min?: number
+  category?: string
   payment_method?: string
   is_paid?: boolean
   origin_lat?: number
@@ -53,6 +64,7 @@ interface RidesState {
   rateDriver: (rideId: string | number, rating: number, comment?: string) => Promise<{ success: boolean; message?: string }>
   setCurrentRide: (ride: any) => void
   clearCurrentRide: () => void
+  dismissCompletedRide: (rideId: string | number) => Promise<{ success: boolean }>
   updateRideStatus: (status: string, data?: any) => void
   setDriverLocation: (lat: number, lng: number) => void
   simulateDriverAcceptance: () => void
@@ -66,11 +78,12 @@ interface RidesState {
 }
 
 function mapLegacyStatus(raw: any): string {
-  if (raw.status === 'searching' || raw.status === 0) return 'searching'
+  if (raw.status === 'searching') return 'searching'
   if (raw.is_cancelled || raw.status === 'cancelled') return 'cancelled'
   if (raw.is_completed || raw.status === 'completed') return 'completed'
+  if (raw.status === 'destination_arrived') return 'destination_arrived'
   if (raw.is_started || raw.is_walk_started || raw.status === 'in_progress') return 'in_progress'
-  if (raw.is_walker_arrived || raw.status === 'arrived' || raw.status === 'pickup_arrived') return 'arrived'
+  if (raw.is_walker_arrived || raw.status === 'arrived' || raw.status === 'pickup_arrived') return 'pickup_arrived'
   if (raw.confirmed_walker || raw.status === 'accepted' || raw.status === 1) return 'accepted'
   return raw.status || 'searching'
 }
@@ -88,16 +101,20 @@ function normalizeRideFromApi(raw: any, rideId: string | number): Ride {
     destination_address: raw.destination_address || raw.dropoff_address || raw.destination,
     fare: raw.fare ?? raw.estimated_fare ?? raw.total,
     estimated_fare: raw.estimated_fare ?? raw.fare ?? raw.total,
+    distance_km: raw.distance_km ?? (raw.distance != null ? Number(raw.distance) : undefined),
+    duration_min: raw.duration_min ?? (raw.time != null ? Number(raw.time) : undefined),
     payment_method: typeof paymentMode === 'number' ? paymentMap[paymentMode] || 'cash' : paymentMode,
     origin_lat: raw.origin_lat ?? raw.latitude ?? raw.owner_latitude,
     origin_lng: raw.origin_lng ?? raw.longitude ?? raw.owner_longitude,
     dest_lat: raw.dest_lat ?? raw.d_latitude ?? raw.destination_lat,
     dest_lng: raw.dest_lng ?? raw.d_longitude ?? raw.destination_lng,
+    is_paid: !!(raw.is_paid ?? raw.isPaid),
     driver: walker
       ? {
           first_name: walker.first_name || walker.name || 'Motorista',
           last_name: walker.last_name,
           avatar: walker.avatar || walker.picture,
+          phone: walker.phone,
           vehicle_model: walker.vehicle_model || walker.type || walker.car_model,
           vehicle_plate: walker.vehicle_plate || walker.plate,
           vehicle_color: walker.vehicle_color || walker.color,
@@ -150,6 +167,38 @@ export const useRidesStore = create<RidesState>((set, get) => ({
 
   requestRide: async (data) => {
     set({ loading: true })
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('rider_token') : null
+
+    if (isDemoRiderToken(token)) {
+      const id = `demo-${Date.now()}`
+      const fare = data.estimated_fare ?? 0
+      const ride: Ride = {
+        id,
+        status: 'searching',
+        origin_address: data.origin_address,
+        pickup_address: data.origin_address,
+        destination_address: data.destination_address,
+        origin_lat: data.origin_lat,
+        origin_lng: data.origin_lng,
+        dest_lat: data.dest_lat,
+        dest_lng: data.dest_lng,
+        estimated_fare: fare,
+        fare,
+        payment_method: data.payment_method || 'cash',
+      }
+      publishDemoRide({
+        ...ride,
+        distance_meters: data.distance_meters,
+        duration_seconds: data.duration_seconds,
+        category: data.category,
+        passenger_name: 'Demo Passageiro',
+      })
+      persistActiveRideId(id)
+      persistRideSnapshot(ride)
+      set({ currentRide: ride, searchingDrivers: true, hasActiveRide: true, loading: false })
+      return { success: true, ride }
+    }
+
     try {
       const categoryId =
         data.category_id ??
@@ -159,6 +208,8 @@ export const useRidesStore = create<RidesState>((set, get) => ({
         category_id: categoryId,
       })
       const ride = response.data.ride
+      persistActiveRideId(ride.id)
+      persistRideSnapshot(ride)
       set({ currentRide: ride, searchingDrivers: true, hasActiveRide: true, loading: false })
       return { success: true, ride }
     } catch (error: any) {
@@ -172,6 +223,16 @@ export const useRidesStore = create<RidesState>((set, get) => ({
 
   fetchRide: async (rideId) => {
     set({ loading: true })
+
+    if (isDemoRideId(rideId)) {
+      const demo = getDemoRide()
+      if (demo && String(demo.id) === String(rideId)) {
+        const ride = normalizeRideFromApi(demo, rideId)
+        set({ currentRide: ride, hasActiveRide: true, loading: false })
+        return ride
+      }
+    }
+
     try {
       const response = await api.get(`rider/rides/${rideId}`)
       const raw = response.data?.ride || response.data
@@ -202,16 +263,29 @@ export const useRidesStore = create<RidesState>((set, get) => ({
   },
 
   cancelRide: async (rideId, reason) => {
+    if (isDemoRideId(rideId)) {
+      clearDemoRide()
+      clearActiveRideSession()
+      set({ currentRide: null, searchingDrivers: false, hasActiveRide: false, driverLocation: null })
+      return { success: true }
+    }
     try {
       await api.post(`rider/rides/${rideId}/cancel`, { reason })
     } catch {
       // fallback offline
     }
+    clearActiveRideSession()
     set({ currentRide: null, searchingDrivers: false, hasActiveRide: false, driverLocation: null })
     return { success: true }
   },
 
   rateDriver: async (rideId, rating, comment) => {
+    if (isDemoRideId(rideId)) {
+      clearDemoRide()
+      clearActiveRideSession()
+      set({ currentRide: null, hasActiveRide: false, driverLocation: null, searchingDrivers: false })
+      return { success: true }
+    }
     try {
       await api.post(`rider/rides/${rideId}/rate`, { rating, comment })
       return { success: true }
@@ -221,6 +295,10 @@ export const useRidesStore = create<RidesState>((set, get) => ({
   },
 
   setCurrentRide: (ride) => {
+    if (ride && !['cancelled', 'completed'].includes(ride.status || '')) {
+      persistRideSnapshot(ride)
+      if (ride.id != null) persistActiveRideId(ride.id)
+    }
     set({
       currentRide: ride,
       searchingDrivers: ride?.status === 'searching',
@@ -229,7 +307,18 @@ export const useRidesStore = create<RidesState>((set, get) => ({
   },
 
   clearCurrentRide: () => {
+    clearActiveRideSession()
     set({ currentRide: null, searchingDrivers: false, hasActiveRide: false, driverLocation: null })
+  },
+
+  dismissCompletedRide: async (rideId: string | number) => {
+    if (isDemoRideId(rideId)) {
+      clearDemoRide()
+    }
+    dismissRide(rideId)
+    clearActiveRideSession()
+    set({ currentRide: null, searchingDrivers: false, hasActiveRide: false, driverLocation: null })
+    return { success: true }
   },
 
   updateRideStatus: (status, data = {}) => {

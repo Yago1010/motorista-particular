@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { MapPin, Navigation, X, ArrowUpDown } from 'lucide-react'
+import { Clock, Loader2, MapPin, Navigation, X, ArrowUpDown } from 'lucide-react'
 import { formatPlaceDistance } from '@/utils/navigation'
 
 export interface PlaceSuggestion {
@@ -16,6 +16,8 @@ interface RouteSearchBarProps {
   destFocused: boolean
   originSuggestions: PlaceSuggestion[]
   destSuggestions: PlaceSuggestion[]
+  recentDestinations?: PlaceSuggestion[]
+  destLoading?: boolean
   onOriginChange: (value: string) => void
   onDestinationChange: (value: string) => void
   onOriginFocus: () => void
@@ -38,6 +40,8 @@ export default function RouteSearchBar({
   destFocused,
   originSuggestions,
   destSuggestions,
+  recentDestinations = [],
+  destLoading = false,
   onOriginChange,
   onDestinationChange,
   onOriginFocus,
@@ -52,8 +56,12 @@ export default function RouteSearchBar({
   onDestinationEnter,
   confirmSlot,
 }: RouteSearchBarProps) {
-  const showOriginList = originFocused && originSuggestions.length > 0
-  const showDestList = destFocused && destSuggestions.length > 0 && destinationInput.trim().length >= 2
+  const showOriginList = originFocused && originInput.trim().length >= 1 && (originSuggestions.length > 0 || originInput.trim().length >= 1)
+  const destQueryLen = destinationInput.trim().length
+  const showRecent =
+    destFocused && destQueryLen < 1 && recentDestinations.length > 0 && !destLoading
+  const showDestList =
+    (destFocused || destQueryLen >= 1) && (destSuggestions.length > 0 || destLoading || showRecent || destQueryLen >= 1)
 
   return (
     <div className="chama-route-card">
@@ -118,7 +126,11 @@ export default function RouteSearchBar({
                 }
               }}
             />
-            {destinationInput ? (
+            {destLoading ? (
+              <span className="chama-route-icon-btn chama-route-loading" aria-hidden>
+                <Loader2 className="h-4 w-4 animate-spin text-[#39ff6a]" />
+              </span>
+            ) : destinationInput ? (
               <button type="button" className="chama-route-icon-btn" onClick={onClearDestination}>
                 <X className="h-4 w-4" />
               </button>
@@ -126,6 +138,26 @@ export default function RouteSearchBar({
             </div>
             {showDestList && (
               <ul className="chama-suggestions">
+                {showRecent && (
+                  <li className="chama-suggestions-section">Recentes</li>
+                )}
+                {showRecent &&
+                  recentDestinations.map((place, idx) => (
+                    <li key={`r-${idx}`}>
+                      <button type="button" onMouseDown={() => onSelectDestination(place)}>
+                        <Clock className="h-4 w-4 shrink-0 text-gray-400" />
+                        <span className="chama-suggestion-text">
+                          <span>{place.address}</span>
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                {destLoading && destSuggestions.length === 0 && (
+                  <li className="chama-suggestions-loading">
+                    <Loader2 className="h-4 w-4 animate-spin text-[#39ff6a]" />
+                    Buscando endereços...
+                  </li>
+                )}
                 {destSuggestions.map((place, idx) => (
                   <li key={`d-${idx}`}>
                     <button type="button" onMouseDown={() => onSelectDestination(place)}>

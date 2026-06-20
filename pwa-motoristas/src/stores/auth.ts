@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import api from '@/services/api';
 import { clearDriverSession, syncDriverApiToken } from '@/utils/authSession';
+import { resetDriverAppSession } from '@/utils/resetAppSession';
+import { useRidesStore } from '@/stores/rides';
 
 export interface DriverUser {
   id: number;
@@ -55,14 +57,16 @@ export const useAuthStore = create<AuthState>()(
             syncDriverApiToken(savedToken);
             set({ token: savedToken, user: userData, isAuthenticated: true });
           } catch (error) {
-            clearDriverSession();
+            resetDriverAppSession();
+            useRidesStore.setState({ currentRide: null, pendingRides: [], rides: [] });
             set({ token: null, user: null, isAuthenticated: false });
           }
         }
       },
 
       forceLogout: () => {
-        clearDriverSession();
+        resetDriverAppSession();
+        useRidesStore.setState({ currentRide: null, pendingRides: [], rides: [] });
         set({ token: null, user: null, isAuthenticated: false, isOnline: false, loading: false });
       },
 
@@ -95,6 +99,7 @@ export const useAuthStore = create<AuthState>()(
           const { isDemoDriverCredentials, buildDemoDriverSession } = await import('@/config/demoUsers');
           if (isDemoDriverCredentials(email, password)) {
             const session = buildDemoDriverSession();
+            localStorage.setItem('chama_demo', '1');
             set({ token: session.token, user: session.user, isAuthenticated: true });
             localStorage.setItem('driver_token', session.token);
             localStorage.setItem('driver_user', JSON.stringify(session.user));
@@ -149,7 +154,8 @@ export const useAuthStore = create<AuthState>()(
         } catch (error) {
           console.error('Logout error:', error);
         } finally {
-          clearDriverSession();
+          resetDriverAppSession();
+          useRidesStore.setState({ currentRide: null, pendingRides: [], rides: [] });
           set({
             token: null,
             user: null,

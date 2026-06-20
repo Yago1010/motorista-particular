@@ -16,11 +16,56 @@ export interface SearchNearOptions {
 
 export interface SearchAddressOptions {
   wide?: boolean
+  signal?: AbortSignal
+  /** Atualiza a lista assim que a primeira fonte responder (UX mais fluida). */
+  onPartial?: (places: PlaceSuggestion[]) => void
+}
+
+const SEARCH_CACHE = new Map<string, { at: number; places: PlaceSuggestion[] }>()
+const SEARCH_CACHE_TTL_MS = 5 * 60 * 1000
+const SEARCH_CACHE_MAX = 80
+
+function searchCacheKey(query: string, near?: SearchNearOptions, wide?: boolean) {
+  const n = near ? `${near.lat.toFixed(3)},${near.lng.toFixed(3)}` : 'global'
+  return `${query.toLowerCase()}|${n}|${wide ? 'w' : 'l'}`
+}
+
+function readSearchCache(key: string): PlaceSuggestion[] | null {
+  const hit = SEARCH_CACHE.get(key)
+  if (!hit || Date.now() - hit.at > SEARCH_CACHE_TTL_MS) return null
+  return hit.places
+}
+
+function writeSearchCache(key: string, places: PlaceSuggestion[]) {
+  if (!places.length) return
+  SEARCH_CACHE.set(key, { at: Date.now(), places })
+  if (SEARCH_CACHE.size > SEARCH_CACHE_MAX) {
+    const oldest = SEARCH_CACHE.keys().next().value
+    if (oldest) SEARCH_CACHE.delete(oldest)
+  }
+}
+
+async function fetchWithTimeout(
+  url: string,
+  init: RequestInit & { timeoutMs?: number } = {}
+): Promise<Response> {
+  const { timeoutMs = 4500, signal, ...rest } = init
+  const controller = new AbortController()
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs)
+  const onAbort = () => controller.abort()
+  signal?.addEventListener('abort', onAbort)
+  try {
+    return await fetch(url, { ...rest, signal: controller.signal })
+  } finally {
+    window.clearTimeout(timer)
+    signal?.removeEventListener('abort', onAbort)
+  }
 }
 
 async function fetchPhotonLocal(
   query: string,
-  near: SearchNearOptions
+  near: SearchNearOptions,
+  signal?: AbortSignal
 ): Promise<PlaceSuggestion[]> {
   const params = new URLSearchParams({
     q: query,
@@ -29,7 +74,10 @@ async function fetchPhotonLocal(
     limit: String(near.limit ?? 10),
     lang: 'pt',
   })
-  const response = await fetch(`https://photon.komoot.io/api/?${params}`)
+  const response = await fetchWithTimeout(`https://photon.komoot.io/api/?${params}`, {
+    signal,
+    timeoutMs: 2200,
+  })
   if (!response.ok) return []
   const data = await response.json()
   if (!Array.isArray(data.features)) return []
@@ -60,9 +108,38 @@ async function fetchPhotonLocal(
     .filter(Boolean) as PlaceSuggestion[]
 }
 
+async function fetchApiPlaces(
+  query: string,
+  near?: SearchNearOptions,
+  options?: SearchAddressOptions
+): Promise<PlaceSuggestion[]> {
+  const wide = options?.wide || near?.wide
+  const params = new URLSearchParams({ q: query.trim(), limit: String(near?.limit ?? 10) })
+  if (near) {
+    params.set('lat', String(near.lat))
+    params.set('lng', String(near.lng))
+    params.set('radius_km', String(wide ? 120 : near.radiusKm ?? 35))
+    if (wide) params.set('wide', '1')
+  }
+  const response = await fetchWithTimeout(`/api/places/search?${params}`, {
+    signal: options?.signal,
+    timeoutMs: 5000,
+  })
+  if (!response.ok) return []
+  const data = await response.json()
+  if (!Array.isArray(data.places)) return []
+  return data.places.map((place: PlaceSuggestion) => ({
+    lat: Number(place.lat),
+    lng: Number(place.lng),
+    address: place.address,
+    distance_m: place.distance_m,
+  }))
+}
+
 async function fetchNominatimBounded(
   query: string,
-  near: SearchNearOptions
+  near: SearchNearOptions,
+  signal?: AbortSignal
 ): Promise<PlaceSuggestion[]> {
   const radiusKm = near.radiusKm ?? 35
   const dLat = radiusKm / 111
@@ -78,8 +155,10 @@ async function fetchNominatimBounded(
     bounded: '1',
   })
 
-  const response = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
+  const response = await fetchWithTimeout(`https://nominatim.openstreetmap.org/search?${params}`, {
     headers: { 'User-Agent': 'ChamaNo12-PWA/1.0' },
+    signal,
+    timeoutMs: 5000,
   })
   if (!response.ok) return []
   const results = await response.json()
@@ -139,7 +218,7 @@ export async function reverseGeocode(lat: number, lng: number): Promise<string> 
   return `${lat.toFixed(5)}, ${lng.toFixed(5)}`
 }
 
-async function fetchNominatimGlobal(query: string, limit = 10): Promise<PlaceSuggestion[]> {
+async function fetchNominatimGlobal(query: string, limit = 10, signal?: AbortSignal): Promise<PlaceSuggestion[]> {
   const params = new URLSearchParams({
     format: 'json',
     q: query,
@@ -148,8 +227,10 @@ async function fetchNominatimGlobal(query: string, limit = 10): Promise<PlaceSug
     'accept-language': 'pt-BR',
     countrycodes: 'br',
   })
-  const response = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
+  const response = await fetchWithTimeout(`https://nominatim.openstreetmap.org/search?${params}`, {
     headers: { 'User-Agent': 'ChamaNo12-PWA/1.0' },
+    signal,
+    timeoutMs: 5000,
   })
   if (!response.ok) return []
   const results = await response.json()
@@ -169,51 +250,91 @@ export async function searchAddresses(
   if (!query.trim()) return []
 
   const wide = options?.wide || near?.wide
+  const cacheKey = searchCacheKey(query, near, wide)
+  const cached = readSearchCache(cacheKey)
+  if (cached) {
+    options?.onPartial?.(cached)
+    return cached
+  }
 
-  try {
-    const params = new URLSearchParams({ q: query.trim(), limit: String(near?.limit ?? 10) })
-    if (near) {
-      params.set('lat', String(near.lat))
-      params.set('lng', String(near.lng))
-      params.set('radius_km', String(wide ? 250 : near.radiusKm ?? 35))
-      if (wide) params.set('wide', '1')
-    }
-    const response = await fetch(`/api/places/search?${params}`)
-    if (response.ok) {
-      const data = await response.json()
-      if (Array.isArray(data.places) && data.places.length) {
-        return data.places.map((place: PlaceSuggestion) => ({
-          lat: Number(place.lat),
-          lng: Number(place.lng),
-          address: place.address,
-          distance_m: place.distance_m,
-        }))
-      }
-    }
-  } catch {
-    /* client fallback below */
+  const signal = options?.signal
+  const emit = (places: PlaceSuggestion[]) => {
+    if (places.length) options?.onPartial?.(places)
   }
 
   if (near) {
-    let places = await fetchPhotonLocal(query, near)
-    if (places.length < 4) {
-      places = dedupePlaces([
-        ...places,
-        ...(wide
-          ? await fetchNominatimGlobal(query, near.limit ?? 10)
-          : await fetchNominatimBounded(query, near)),
-      ])
+    const photonPromise = fetchPhotonLocal(query, near, signal).then((places) => {
+      if (places.length) {
+        const sorted = sortByDistance(places, near.lat, near.lng).slice(0, near.limit ?? 10)
+        emit(sorted)
+      }
+      return places
+    })
+    const apiPromise = fetchApiPlaces(query, near, options)
+
+    const [photon, api] = await Promise.allSettled([photonPromise, apiPromise])
+    let places = dedupePlaces([
+      ...(photon.status === 'fulfilled' ? photon.value : []),
+      ...(api.status === 'fulfilled' ? api.value : []),
+    ])
+
+    if (places.length >= 1) {
+      places = sortByDistance(places, near.lat, near.lng)
+      if (!wide) {
+        const maxM = (near.radiusKm ?? 35) * 1000
+        const nearby = places.filter((p) => (p.distance_m ?? 0) <= maxM)
+        if (nearby.length) places = nearby
+      }
+      const result = places.slice(0, near.limit ?? 10)
+      writeSearchCache(cacheKey, result)
+      emit(result)
+      return result
     }
-    places = sortByDistance(places, near.lat, near.lng)
-    if (!wide) {
-      const maxM = (near.radiusKm ?? 35) * 1000
-      const nearby = places.filter((p) => (p.distance_m ?? 0) <= maxM)
-      if (nearby.length) places = nearby
-    }
-    return places.slice(0, near.limit ?? 10)
+
+    // Fallback só se ambas falharem ou vierem vazias
+    const fallback = wide
+      ? await fetchNominatimGlobal(query, near.limit ?? 10, signal)
+      : await fetchNominatimBounded(query, near, signal)
+    places = sortByDistance(dedupePlaces([...places, ...fallback]), near.lat, near.lng)
+    const result = places.slice(0, near.limit ?? 10)
+    writeSearchCache(cacheKey, result)
+    emit(result)
+    return result
   }
 
-  return fetchNominatimGlobal(query, 10)
+  const result = await fetchNominatimGlobal(query, 10, signal)
+  writeSearchCache(cacheKey, result)
+  emit(result)
+  return result
+}
+
+const RECENT_DEST_KEY = 'chama_recent_destinations'
+const RECENT_DEST_MAX = 6
+
+export function getRecentDestinations(): PlaceSuggestion[] {
+  try {
+    const raw = localStorage.getItem(RECENT_DEST_KEY)
+    return raw ? (JSON.parse(raw) as PlaceSuggestion[]) : []
+  } catch {
+    return []
+  }
+}
+
+export function filterPlacesByQuery(places: PlaceSuggestion[], query: string): PlaceSuggestion[] {
+  const q = query.trim().toLowerCase()
+  if (!q) return places
+  return places.filter((p) => p.address.toLowerCase().includes(q))
+}
+
+export function saveRecentDestination(place: PlaceSuggestion) {
+  try {
+    const prev = getRecentDestinations().filter(
+      (p) => `${p.lat.toFixed(4)}|${p.lng.toFixed(4)}` !== `${place.lat.toFixed(4)}|${place.lng.toFixed(4)}`
+    )
+    localStorage.setItem(RECENT_DEST_KEY, JSON.stringify([place, ...prev].slice(0, RECENT_DEST_MAX)))
+  } catch {
+    /* ignore */
+  }
 }
 
 export function formatPlaceDistance(meters?: number): string | null {

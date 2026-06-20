@@ -15,6 +15,7 @@ export function isSecureGeoContext() {
 
 export function markGeoGranted() {
   try {
+    localStorage.setItem(GEO_STORAGE_KEY, '1')
     sessionStorage.setItem(GEO_STORAGE_KEY, '1')
   } catch {
     /* ignore */
@@ -23,7 +24,7 @@ export function markGeoGranted() {
 
 export function wasGeoGrantedBefore() {
   try {
-    return sessionStorage.getItem(GEO_STORAGE_KEY) === '1'
+    return localStorage.getItem(GEO_STORAGE_KEY) === '1' || sessionStorage.getItem(GEO_STORAGE_KEY) === '1'
   } catch {
     return false
   }
@@ -40,35 +41,44 @@ export function startLiveLocationTracking(
     return () => {}
   }
 
+  let errorReported = false
+  const reportError = (message: string) => {
+    if (errorReported) return
+    errorReported = true
+    onError?.(message)
+  }
+
   navigator.geolocation.getCurrentPosition(
     (pos) => {
+      errorReported = false
       onUpdate({
         lat: pos.coords.latitude,
         lng: pos.coords.longitude,
         accuracy: pos.coords.accuracy,
       })
     },
-    (err) => onError?.(err.message || 'Não foi possível obter sua localização'),
-    { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+    (err) => reportError(err.message || 'Não foi possível obter sua localização'),
+    { enableHighAccuracy: true, timeout: 20000, maximumAge: 15000 }
   )
 
   const watchId = navigator.geolocation.watchPosition(
     (pos) => {
+      errorReported = false
       onUpdate({
         lat: pos.coords.latitude,
         lng: pos.coords.longitude,
         accuracy: pos.coords.accuracy,
       })
     },
-    (err) => onError?.(err.message || 'Erro ao atualizar localização'),
-    { enableHighAccuracy: true, maximumAge: 4000, timeout: 15000 }
+    (err) => reportError(err.message || 'Erro ao atualizar localização'),
+    { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 }
   )
 
   return () => navigator.geolocation.clearWatch(watchId)
 }
 
 export async function getCurrentLocation(): Promise<GeoCoords> {
-  const pos = await requestCurrentPosition({ enableHighAccuracy: true, timeout: 20000, maximumAge: 0 })
+  const pos = await requestCurrentPosition({ enableHighAccuracy: true, timeout: 20000, maximumAge: 15000 })
   return {
     lat: pos.coords.latitude,
     lng: pos.coords.longitude,
@@ -85,7 +95,7 @@ export function requestCurrentPosition(options?: PositionOptions): Promise<Geolo
     navigator.geolocation.getCurrentPosition(resolve, reject, {
       enableHighAccuracy: true,
       timeout: 20000,
-      maximumAge: 0,
+      maximumAge: 15000,
       ...options,
     })
   })
@@ -95,6 +105,8 @@ export async function resolveGeoPermissionState(): Promise<GeoPermissionState> {
   if (!isGeolocationSupported()) return 'unsupported'
   if (!isSecureGeoContext()) return 'insecure'
 
+  if (wasGeoGrantedBefore()) return 'granted'
+
   if (navigator.permissions?.query) {
     try {
       const result = await navigator.permissions.query({ name: 'geolocation' as PermissionName })
@@ -103,15 +115,6 @@ export async function resolveGeoPermissionState(): Promise<GeoPermissionState> {
       return 'prompt'
     } catch {
       return wasGeoGrantedBefore() ? 'granted' : 'prompt'
-    }
-  }
-
-  if (wasGeoGrantedBefore()) {
-    try {
-      await requestCurrentPosition({ maximumAge: 120000, timeout: 8000 })
-      return 'granted'
-    } catch {
-      return 'prompt'
     }
   }
 

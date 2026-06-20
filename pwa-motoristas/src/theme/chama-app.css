@@ -314,3 +314,30 @@ body.chama-web.pwa-driver .driver-home {
 .map-loading-placeholder {
   background: linear-gradient(135deg, #dbece2, #c8e6d4);
 }
+
+.user-location-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
+.user-location-pulse {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #169648;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 6px rgba(22, 150, 72, 0.25);
+  animation: chama-user-pulse 2s ease-out infinite;
+}
+
+@keyframes chama-user-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(22, 150, 72, 0.45);
+  }
+  70% {
+    box-shadow: 0 0 0 12px rgba(22, 150, 72, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(22, 150, 72, 0);
+  }
+}

@@ -1,5 +1,5 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios'
-import { clearDriverSession, syncDriverApiToken } from '@/utils/authSession'
+import { syncDriverApiToken } from '@/utils/authSession'
 
 const api = axios.create({
   baseURL: '/api',
@@ -29,7 +29,6 @@ api.interceptors.response.use(
   (error: AxiosError) => {
     if (error.response?.status === 401 && !handling401) {
       handling401 = true
-      clearDriverSession()
       import('@/stores/auth').then(({ useAuthStore }) => {
         useAuthStore.getState().forceLogout()
         handling401 = false

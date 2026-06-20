@@ -1,11 +1,13 @@
+import { useEffect } from 'react'
 import { RouterProvider } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'sonner'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { router } from '@/router'
 import { useAuthStore } from '@/stores/auth'
+import { purgeTerminalDemoRide } from '@/utils/demoRideBridge'
+import { clearActiveRideSession } from '@/utils/activeRideSession'
 import LoadingOverlay from '@/components/LoadingOverlay'
-import { useEffect } from 'react'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -18,14 +20,23 @@ const queryClient = new QueryClient({
 })
 
 function App() {
-  const { initAuth, loading, loadingMessage, authReady } = useAuthStore()
+  const { initAuth, loading, loadingMessage, authReady, isAuthenticated } = useAuthStore()
 
   useEffect(() => {
     initAuth()
     if (useAuthStore.persist.hasHydrated()) {
       useAuthStore.setState({ authReady: true })
     }
+    if (purgeTerminalDemoRide()) {
+      clearActiveRideSession()
+    }
   }, [initAuth])
+
+  useEffect(() => {
+    if (authReady && !isAuthenticated) {
+      queryClient.clear()
+    }
+  }, [authReady, isAuthenticated])
 
   if (!authReady || loading) {
     return <LoadingOverlay message={loadingMessage || 'Carregando...'} />

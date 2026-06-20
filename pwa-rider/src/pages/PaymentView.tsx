@@ -6,6 +6,7 @@ import { useRideQuery, usePayRideMutation, fetchRidePaymentPix } from '@/hooks/q
 import { useWalletQuery } from '@/hooks/queries/useWalletQueries'
 import LoadingOverlay from '@/components/LoadingOverlay'
 import { buildPixQrUrl, buildWhatsAppDriverLink } from '@/utils/rideSimulation'
+import { isDemoRideId } from '@/utils/demoRideBridge'
 
 const methods = [
   { id: 'cash', label: 'Dinheiro', icon: Banknote, desc: 'Pague ao motorista' },
@@ -22,6 +23,7 @@ export default function PaymentView() {
   const payMutation = usePayRideMutation()
   const [selected, setSelected] = useState('cash')
   const [pixCode, setPixCode] = useState('')
+  const [pixQrUrl, setPixQrUrl] = useState('')
   const [pixLoading, setPixLoading] = useState(false)
 
   const fare = ride?.fare || ride?.estimated_fare || 0
@@ -31,13 +33,30 @@ export default function PaymentView() {
     : 'Motorista'
 
   useEffect(() => {
-    if (selected !== 'pix' || !id) return
+    if (ride?.is_paid && id) {
+      navigate('/', { replace: true })
+    }
+  }, [ride?.is_paid, id, navigate])
+
+  useEffect(() => {
+    if (ride?.payment_method) {
+      setSelected(ride.payment_method)
+    }
+  }, [ride?.payment_method])
+
+  useEffect(() => {
+    if (!id) return
+    const wantsPix = selected === 'pix' || ride?.payment_method === 'pix'
+    if (!wantsPix) return
     setPixLoading(true)
     fetchRidePaymentPix(id)
-      .then((data) => setPixCode(data.pix_code))
+      .then((data) => {
+        setPixCode(data.pix_code)
+        if (data.qr_url) setPixQrUrl(data.qr_url)
+      })
       .catch(() => toast.error('Não foi possível gerar o Pix'))
       .finally(() => setPixLoading(false))
-  }, [selected, id])
+  }, [selected, id, ride?.payment_method])
 
   const formatCurrency = (v: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
@@ -46,8 +65,12 @@ export default function PaymentView() {
     if (!id) return
     try {
       await payMutation.mutateAsync({ rideId: id, payment_method: selected })
-      toast.success('Pagamento confirmado!')
-      navigate(`/ride/${id}`, { replace: true })
+      toast.success(
+        isDemoRideId(id)
+          ? 'Pagamento confirmado! O motorista pode finalizar a corrida.'
+          : 'Pagamento confirmado!'
+      )
+      navigate('/', { replace: true })
     } catch {
       toast.error('Erro ao processar pagamento')
     }
@@ -64,15 +87,22 @@ export default function PaymentView() {
   }
 
   const shareWhatsApp = () => {
-    if (!driverPhone) {
+    const phone = driverPhone || (isDemoRideId(id) ? '+5511999990002' : '')
+    if (!phone) {
       toast.error('Telefone do motorista indisponível')
       return
     }
-    const msg = `Olá ${driverName}! Segue pagamento da corrida #${id} no valor de ${formatCurrency(fare)} via ${selected === 'pix' ? 'Pix' : selected}.`
-    window.open(buildWhatsAppDriverLink(driverPhone, msg), '_blank', 'noopener,noreferrer')
+    const payLabel = selected === 'pix' ? 'Pix' : selected === 'cash' ? 'Dinheiro' : selected
+    const msg =
+      selected === 'pix' && pixCode
+        ? `Olá ${driverName}! Pagamento da corrida #${id} — ${formatCurrency(fare)} via Pix.\n\nCódigo copia e cola:\n${pixCode}`
+        : `Olá ${driverName}! Confirmo pagamento da corrida #${id} no valor de ${formatCurrency(fare)} via ${payLabel}.`
+    window.open(buildWhatsAppDriverLink(phone, msg), '_blank', 'noopener,noreferrer')
   }
 
   if (isLoading || !ride) return <LoadingOverlay message="Carregando pagamento..." />
+
+  const atDestination = ride.status === 'destination_arrived'
 
   return (
     <div className="chama-page min-h-screen p-4 pb-10">
@@ -80,7 +110,12 @@ export default function PaymentView() {
         <button type="button" onClick={() => navigate(-1)} className="chama-map-back static">
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <h1 className="text-xl font-bold">Pagamento</h1>
+        <div>
+          <h1 className="text-xl font-bold">Pagamento</h1>
+          {atDestination && (
+            <p className="text-xs text-gray-400">Motorista chegou — confirme o pagamento</p>
+          )}
+        </div>
       </header>
 
       <div className="chama-card mb-6 p-6 text-center">
@@ -117,7 +152,7 @@ export default function PaymentView() {
             <div className="mx-auto mb-3 h-48 w-48 animate-pulse rounded-xl bg-white/10" />
           ) : pixCode ? (
             <img
-              src={buildPixQrUrl(pixCode, 220)}
+              src={pixQrUrl || buildPixQrUrl(pixCode, 220)}
               alt="QR Code Pix"
               className="mx-auto mb-3 rounded-xl bg-white p-2"
               width={220}
@@ -136,14 +171,14 @@ export default function PaymentView() {
         </div>
       )}
 
-      {driverPhone && (
+      {(driverPhone || isDemoRideId(id)) && (
         <button
           type="button"
           onClick={shareWhatsApp}
           className="chama-btn-outline mt-4 flex w-full items-center justify-center gap-2"
         >
           <MessageCircle className="h-5 w-5" />
-          Enviar valor no WhatsApp do motorista
+          {selected === 'pix' ? 'Enviar Pix no WhatsApp do motorista' : 'Avisar motorista no WhatsApp'}
         </button>
       )}
 

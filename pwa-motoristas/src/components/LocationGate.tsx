@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { MapPin, Navigation } from 'lucide-react'
 import {
   markGeoGranted,
   requestCurrentPosition,
   resolveGeoPermissionState,
+  wasGeoGrantedBefore,
   type GeoCoords,
   type GeoPermissionState,
 } from '@/utils/geolocation'
@@ -23,89 +24,81 @@ export default function LocationGate({
   appName,
   description,
 }: LocationGateProps) {
-  const [state, setState] = useState<GeoPermissionState>('checking')
+  const onGrantedRef = useRef(onGranted)
+  const notifiedRef = useRef(false)
+  const [state, setState] = useState<GeoPermissionState>(() =>
+    wasGeoGrantedBefore() ? 'granted' : 'checking'
+  )
   const [requesting, setRequesting] = useState(false)
 
-  const grantAccess = useCallback(
-    (notify: boolean, coords?: GeoCoords) => {
-      markGeoGranted()
-      setState('granted')
-      setRequesting(false)
-      if (notify) onGranted?.(coords)
-    },
-    [onGranted]
-  )
+  useEffect(() => {
+    onGrantedRef.current = onGranted
+  }, [onGranted])
 
-  const probeLocation = useCallback(
-    async (notify: boolean) => {
-      setRequesting(true)
-      try {
-        const pos = await requestCurrentPosition()
-        grantAccess(notify, {
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-          accuracy: pos.coords.accuracy,
-        })
-      } catch (err) {
-        setRequesting(false)
-        const geoErr = err as GeolocationPositionError
-        if (geoErr?.code === GeolocationPositionError.PERMISSION_DENIED) {
-          setState('denied')
-        } else {
-          setState('prompt')
-        }
+  const notifyOnce = useCallback((coords?: GeoCoords) => {
+    if (notifiedRef.current) return
+    notifiedRef.current = true
+    onGrantedRef.current?.(coords)
+  }, [])
+
+  const grantAccess = useCallback((coords?: GeoCoords) => {
+    markGeoGranted()
+    setState('granted')
+    setRequesting(false)
+    notifyOnce(coords)
+  }, [notifyOnce])
+
+  const probeLocation = useCallback(async (notify: boolean) => {
+    setRequesting(true)
+    try {
+      const pos = await requestCurrentPosition({ maximumAge: 30000 })
+      const coords = {
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+        accuracy: pos.coords.accuracy,
       }
-    },
-    [grantAccess]
-  )
+      grantAccess(notify ? coords : coords)
+    } catch (err) {
+      setRequesting(false)
+      const geoErr = err as GeolocationPositionError
+      if (geoErr?.code === GeolocationPositionError.PERMISSION_DENIED) {
+        setState('denied')
+      } else if (wasGeoGrantedBefore()) {
+        setState('granted')
+      } else {
+        setState('prompt')
+      }
+    }
+  }, [grantAccess])
 
   useEffect(() => {
     let cancelled = false
 
+    if (wasGeoGrantedBefore()) {
+      void probeLocation(false)
+      return () => {
+        cancelled = true
+      }
+    }
+
     resolveGeoPermissionState().then(async (next) => {
       if (cancelled) return
       if (next === 'granted') {
-        try {
-          const pos = await requestCurrentPosition()
-          if (cancelled) return
-          markGeoGranted()
-          setState('granted')
-          onGranted?.({
-            lat: pos.coords.latitude,
-            lng: pos.coords.longitude,
-            accuracy: pos.coords.accuracy,
-          })
-          return
-        } catch {
-          if (!cancelled) setState('prompt')
-          return
-        }
+        await probeLocation(false)
+        return
       }
       setState(next)
     })
 
     const timeout = window.setTimeout(() => {
       setState((current) => (current === 'checking' ? 'prompt' : current))
-    }, 2000)
-
-    if (navigator.permissions?.query) {
-      navigator.permissions
-        .query({ name: 'geolocation' as PermissionName })
-        .then((result) => {
-          result.onchange = () => {
-            if (result.state === 'granted') void probeLocation(true)
-            else if (result.state === 'denied') setState('denied')
-            else setState('prompt')
-          }
-        })
-        .catch(() => {})
-    }
+    }, 1500)
 
     return () => {
       cancelled = true
       window.clearTimeout(timeout)
     }
-  }, [grantAccess, probeLocation, onGranted])
+  }, [probeLocation])
 
   const requestLocation = () => probeLocation(true)
   const verifyAgain = () => probeLocation(true)
@@ -141,9 +134,9 @@ export default function LocationGate({
           {state === 'unsupported'
             ? 'Seu navegador não suporta GPS. Use Chrome ou Safari no celular.'
             : state === 'insecure'
-              ? 'A localização só funciona em HTTPS ou localhost. Abra o app pelo endereço seguro do servidor.'
+              ? 'A localização só funciona em HTTPS ou localhost.'
               : state === 'denied'
-                ? 'A localização está bloqueada. Libere nas configurações do navegador e toque em continuar.'
+                ? 'A localização está bloqueada. Libere nas configurações do navegador.'
                 : description || defaultDescription}
         </p>
         {state !== 'unsupported' && state !== 'insecure' && (

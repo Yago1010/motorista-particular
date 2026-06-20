@@ -2,6 +2,8 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import api from '@/services/api'
 import { clearRiderSession, syncRiderApiToken } from '@/utils/authSession'
+import { resetRiderAppSession } from '@/utils/resetAppSession'
+import { useRidesStore } from '@/stores/rides'
 
 export interface RiderUser {
   id: number
@@ -52,14 +54,16 @@ export const useAuthStore = create<AuthState>()(
             syncRiderApiToken(savedToken)
             set({ token: savedToken, user: userData, isAuthenticated: true })
           } catch {
-            clearRiderSession()
+            resetRiderAppSession()
+            useRidesStore.getState().clearCurrentRide()
             set({ token: null, user: null, isAuthenticated: false })
           }
         }
       },
 
       forceLogout: () => {
-        clearRiderSession()
+        resetRiderAppSession()
+        useRidesStore.getState().clearCurrentRide()
         set({ token: null, user: null, isAuthenticated: false, loading: false })
       },
 
@@ -85,6 +89,7 @@ export const useAuthStore = create<AuthState>()(
           const { isDemoRiderCredentials, buildDemoRiderSession } = await import('@/config/demoUsers')
           if (isDemoRiderCredentials(email, password)) {
             const session = buildDemoRiderSession()
+            localStorage.setItem('chama_demo', '1')
             set({ token: session.token, user: session.user, isAuthenticated: true })
             localStorage.setItem('rider_token', session.token)
             localStorage.setItem('rider_user', JSON.stringify(session.user))
@@ -174,7 +179,8 @@ export const useAuthStore = create<AuthState>()(
         } catch (error) {
           console.error('Logout error:', error)
         } finally {
-          clearRiderSession()
+          resetRiderAppSession()
+          useRidesStore.getState().clearCurrentRide()
           set({
             token: null,
             user: null,

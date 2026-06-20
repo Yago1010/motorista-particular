@@ -159,18 +159,12 @@ class ApiRiderController extends ApiBaseController
 			return $this->jsonError('Não autorizado', 401);
 		}
 
-		Input::merge(array(
-			'token' => $owner->token,
-			'id' => $owner->id,
-			'request_id' => $id,
-		));
-
-		$data = $this->decodeLegacyResponse((new DogController())->get_request());
-		if (empty($data['success'])) {
-			return $this->jsonError(isset($data['error']) ? $data['error'] : 'Corrida não encontrada', 404);
+		$request = Requests::find($id);
+		if (!$request || (int) $request->owner_id !== (int) $owner->id) {
+			return $this->jsonError('Corrida não encontrada', 404);
 		}
 
-		return Response::json(array('ride' => $this->transformGetRequest($data, $id)));
+		return Response::json(array('ride' => $this->ridePayloadFromRequest($request)));
 	}
 
 	public function getRideLocation()
@@ -364,8 +358,12 @@ class ApiRiderController extends ApiBaseController
 		if (!$request || $request->owner_id != $owner->id) {
 			return $this->jsonError('Corrida não encontrada', 404);
 		}
-		if (!$request->is_completed) {
-			return $this->jsonError('A corrida ainda não foi finalizada', 422);
+		$atDestination = chama_ride_is_destination_arrived($id);
+		if (!$request->is_completed && !$atDestination) {
+			return $this->jsonError('Aguarde chegar ao destino para pagar', 422);
+		}
+		if ($request->is_paid) {
+			return Response::json(array('success' => true, 'is_paid' => true, 'message' => 'Pagamento já confirmado'));
 		}
 
 		if ($method === 'wallet') {
@@ -418,6 +416,10 @@ class ApiRiderController extends ApiBaseController
 		$request = Requests::find($id);
 		if (!$request || $request->owner_id != $owner->id) {
 			return $this->jsonError('Corrida não encontrada', 404);
+		}
+		$atDestination = chama_ride_is_destination_arrived($id);
+		if (!$request->is_completed && !$atDestination) {
+			return $this->jsonError('Aguarde chegar ao destino para gerar o Pix', 422);
 		}
 		$pixCode = chama_ride_pix_code($request);
 		$amount = (float) $request->total;
@@ -511,22 +513,18 @@ class ApiRiderController extends ApiBaseController
 			return $this->jsonError('Não autorizado', 401);
 		}
 
-		Input::merge(array(
-			'token' => $owner->token,
-			'id' => $owner->id,
-		));
+		$request = DB::table('request')
+			->where('owner_id', $owner->id)
+			->where('is_cancelled', 0)
+			->whereRaw('(is_completed = 0 OR (is_completed = 1 AND is_paid = 1))')
+			->orderBy('id', 'desc')
+			->first();
 
-		$data = $this->decodeLegacyResponse((new DogController())->request_in_progress());
-		if (empty($data['success']) || empty($data['request_id']) || (int) $data['request_id'] <= 0) {
+		if (!$request) {
 			return Response::json(array('ride' => null));
 		}
 
-		$request = Requests::find((int) $data['request_id']);
-		if (!$request || (int) $request->owner_id !== (int) $owner->id) {
-			return Response::json(array('ride' => null));
-		}
-
-		return Response::json(array('ride' => $this->ridePayloadFromRequest($request)));
+		return Response::json(array('ride' => $this->ridePayloadFromRequest(Requests::find($request->id))));
 	}
 
 	protected function buildRidePayload($rideId, $owner, $body, $farePreview = null)

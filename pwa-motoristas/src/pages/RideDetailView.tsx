@@ -9,6 +9,7 @@ import { pickupMarkerIcon, destinationMarkerIcon } from '@/utils/mapIcons'
 import { openGoogleMapsNavigation, openWazeNavigation } from '@/utils/navigation'
 import { startLiveLocationTracking } from '@/utils/geolocation'
 import { useAuthStore } from '@/stores/auth'
+import { isDemoRideId, updateDemoRide, purgeTerminalDemoRide } from '@/utils/demoRideBridge'
 
 function formatCurrency(value?: number) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0)
@@ -40,13 +41,18 @@ export default function RideDetailView() {
 
   useEffect(() => {
     if (!id) return
+    purgeTerminalDemoRide()
     ridesStore.fetchRide(id).then((data) => {
-      if (data) setRide(data)
-      else if (ridesStore.currentRide) setRide(ridesStore.currentRide)
+      if (data) {
+        setRide(data)
+        return
+      }
+      toast.info('Corrida encerrada')
+      navigate('/', { replace: true })
     })
-  }, [id])
+  }, [id, navigate, ridesStore])
 
-  useRidePolling({ rideId: id, enabled: !!id, intervalMs: 4000 })
+  useRidePolling({ rideId: id, enabled: !!id, intervalMs: isDemoRideId(id) ? 2000 : 4000 })
 
   useEffect(() => {
     if (ridesStore.currentRide?.id == id) {
@@ -60,6 +66,9 @@ export default function RideDetailView() {
       (coords) => {
         setDriverPos([coords.lat, coords.lng])
         void authStore.updateLocation(coords.lat, coords.lng)
+        if (isDemoRideId(ride.id)) {
+          updateDemoRide({ driver_lat: coords.lat, driver_lng: coords.lng })
+        }
       },
       () => {}
     )
@@ -156,8 +165,11 @@ export default function RideDetailView() {
     if (result.success) {
       toast.success(successMsg)
       const updated = await ridesStore.fetchRide(id)
-      if (updated) setRide(updated)
-      else if (ridesStore.currentRide) setRide(ridesStore.currentRide)
+      if (updated) {
+        setRide(updated)
+      } else {
+        navigate('/', { replace: true })
+      }
       onSuccess?.()
     } else {
       toast.error(result.message || 'Erro na operação')
@@ -329,18 +341,31 @@ export default function RideDetailView() {
 
         {ride.status === 'destination_arrived' && (
           <>
-            <div className="rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-800">
-              Forma de pagamento: <strong>{paymentLabel(ride.payment_method)}</strong> — confirme o recebimento antes de finalizar.
-            </div>
+            {!ride.is_paid ? (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                Aguardando o passageiro confirmar o pagamento ({paymentLabel(ride.payment_method)}).
+              </div>
+            ) : (
+              <div className="rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-800">
+                Pagamento confirmado pelo passageiro — pode finalizar a corrida.
+              </div>
+            )}
             <button
               type="button"
-              disabled={processing}
+              disabled={processing || !ride.is_paid}
               onClick={() =>
-                runAction(() => ridesStore.completeRide(ride.id), 'Corrida finalizada!', () => setShowRating(true))
+                runAction(
+                  () => ridesStore.completeRide(ride.id),
+                  'Corrida finalizada!',
+                  () => {
+                    setShowRating(true)
+                    setRide((prev) => (prev ? { ...prev, status: 'completed' } : prev))
+                  }
+                )
               }
-              className="w-full rounded-xl bg-green-600 py-3 font-semibold text-white"
+              className="w-full rounded-xl bg-green-600 py-3 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Finalizar corrida
+              {ride.is_paid ? 'Finalizar corrida' : 'Aguardando pagamento...'}
             </button>
           </>
         )}

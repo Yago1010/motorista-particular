@@ -1,5 +1,14 @@
 import { create } from 'zustand'
 import api from '@/services/api'
+import {
+  isDemoDriverToken,
+  isDemoRideId,
+  getDemoRide,
+  getActiveDemoRide,
+  updateDemoRide,
+  clearDemoRide,
+  purgeTerminalDemoRide,
+} from '@/utils/demoRideBridge'
 
 export interface PendingRide {
   id: string | number
@@ -36,6 +45,7 @@ export interface Ride {
   estimated_fare?: number
   price?: number
   payment_method?: string
+  is_paid?: boolean
   passenger_name?: string
   passenger_phone?: string
   passenger_rating?: number
@@ -97,6 +107,33 @@ export const useRidesStore = create<RidesState>((set, get) => ({
   loading: false,
 
   fetchPendingRides: async () => {
+    purgeTerminalDemoRide()
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('driver_token') : null
+    if (isDemoDriverToken(token)) {
+      const demo = getActiveDemoRide()
+      if (demo && String(demo.status || 'searching') === 'searching') {
+        set({
+          pendingRides: [
+            {
+              id: demo.id,
+              origin_address: demo.origin_address || demo.pickup_address || '',
+              destination_address: demo.destination_address || '',
+              distance: demo.distance_meters ?? 5000,
+              estimated_duration: demo.duration_seconds ?? 900,
+              estimated_fare: demo.estimated_fare ?? 0,
+              passenger_name: demo.passenger_name || 'Demo Passageiro',
+              passenger_rating: 5,
+              payment_method: demo.payment_method || 'cash',
+              category: demo.category || 'Carro',
+              created_at: new Date().toISOString(),
+            },
+          ],
+        })
+        return
+      }
+      set({ pendingRides: [] })
+      return
+    }
     try {
       const response = await api.get('driver/rides/pending')
       set({ pendingRides: response.data?.rides || [] })
@@ -106,6 +143,31 @@ export const useRidesStore = create<RidesState>((set, get) => ({
   },
 
   acceptRide: async (rideId) => {
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('driver_token') : null
+    if (isDemoDriverToken(token) && String(rideId).startsWith('demo-')) {
+      const { getDemoRide, updateDemoRide } = await import('@/utils/demoRideBridge')
+      const demo = getDemoRide()
+      if (!demo) return { success: false, message: 'Corrida demo não encontrada' }
+      const ride = updateDemoRide({
+        status: 'accepted',
+        driver_controlled: true,
+        driver: {
+          first_name: 'Demo',
+          last_name: 'Motorista',
+          phone: '+5511999990002',
+          vehicle_model: 'Corolla',
+          vehicle_plate: 'DEM-0123',
+          rating: 4.9,
+        },
+        driver_lat: demo.origin_lat != null ? demo.origin_lat - 0.006 : undefined,
+        driver_lng: demo.origin_lng != null ? demo.origin_lng - 0.004 : undefined,
+      })
+      set((state) => ({
+        pendingRides: state.pendingRides.filter((r) => r.id !== rideId),
+        currentRide: ride as unknown as Ride,
+      }))
+      return { success: true }
+    }
     try {
       const response = await api.post(`driver/rides/${rideId}/accept`)
       const ride = response.data?.ride || response.data
@@ -132,6 +194,11 @@ export const useRidesStore = create<RidesState>((set, get) => ({
   },
 
   startRide: async (rideId) => {
+    if (isDemoDriverToken(localStorage.getItem('driver_token')) && isDemoRideId(rideId)) {
+      const updated = updateDemoRide({ status: 'in_progress' })
+      if (updated) set({ currentRide: updated as unknown as Ride })
+      return { success: true }
+    }
     try {
       const response = await api.post(`driver/rides/${rideId}/start`)
       const ride = response.data?.ride
@@ -150,6 +217,11 @@ export const useRidesStore = create<RidesState>((set, get) => ({
   },
 
   arriveAtPickup: async (rideId) => {
+    if (isDemoDriverToken(localStorage.getItem('driver_token')) && isDemoRideId(rideId)) {
+      const updated = updateDemoRide({ status: 'pickup_arrived' })
+      if (updated) set({ currentRide: updated as unknown as Ride })
+      return { success: true }
+    }
     try {
       const response = await api.post(`driver/rides/${rideId}/arrive`)
       const ride = response.data?.ride
@@ -164,6 +236,11 @@ export const useRidesStore = create<RidesState>((set, get) => ({
   },
 
   arriveAtDestination: async (rideId) => {
+    if (isDemoDriverToken(localStorage.getItem('driver_token')) && isDemoRideId(rideId)) {
+      const updated = updateDemoRide({ status: 'destination_arrived' })
+      if (updated) set({ currentRide: updated as unknown as Ride })
+      return { success: true }
+    }
     try {
       const response = await api.post(`driver/rides/${rideId}/arrive-destination`)
       const ride = response.data?.ride
@@ -178,20 +255,51 @@ export const useRidesStore = create<RidesState>((set, get) => ({
   },
 
   completeRide: async (rideId, data = {}) => {
-    try {
-      const response = await api.post(`driver/rides/${rideId}/complete`, data)
-      const ride = response.data?.ride
-      const { currentRide } = get()
-      if (currentRide?.id == rideId) {
-        set({ currentRide: ride || { ...currentRide, status: 'completed' } })
+    if (isDemoDriverToken(localStorage.getItem('driver_token')) && isDemoRideId(rideId)) {
+      const demo = getDemoRide()
+      if (!demo?.is_paid) {
+        return { success: false, message: 'Aguarde o passageiro confirmar o pagamento' }
       }
+      updateDemoRide({ status: 'completed', is_paid: true })
+      clearDemoRide()
+      set({ currentRide: null, pendingRides: [] })
       return { success: true }
+    }
+    try {
+      const { currentRide } = get()
+      const payload: Record<string, unknown> = {
+        ...data,
+        latitude:
+          data.latitude ??
+          currentRide?.dest_lat ??
+          currentRide?.dropoff_lat ??
+          currentRide?.origin_lat ??
+          currentRide?.pickup_lat,
+        longitude:
+          data.longitude ??
+          currentRide?.dest_lng ??
+          currentRide?.dropoff_lng ??
+          currentRide?.origin_lng ??
+          currentRide?.pickup_lng,
+        distance: data.distance ?? currentRide?.distance ?? 1,
+        time: data.time ?? currentRide?.duration ?? 1,
+      }
+      const response = await api.post(`driver/rides/${rideId}/complete`, payload)
+      const ride = response.data?.ride
+      set({ currentRide: null, pendingRides: [] })
+      return { success: true, ride: ride || { ...currentRide, status: 'completed' } }
     } catch (error: any) {
-      return { success: false, message: error.response?.data?.message || 'Erro ao finalizar corrida' }
+      const msg = error.response?.data?.message || error.response?.data?.error || 'Erro ao finalizar corrida'
+      return { success: false, message: msg }
     }
   },
 
   cancelRide: async (rideId, reason) => {
+    if (isDemoDriverToken(localStorage.getItem('driver_token')) && isDemoRideId(rideId)) {
+      clearDemoRide()
+      set({ currentRide: null })
+      return { success: true }
+    }
     try {
       await api.post(`driver/rides/${rideId}/cancel`, { reason })
     } catch {
@@ -202,6 +310,17 @@ export const useRidesStore = create<RidesState>((set, get) => ({
   },
 
   fetchRide: async (rideId) => {
+    purgeTerminalDemoRide()
+    if (isDemoRideId(rideId)) {
+      const demo = getActiveDemoRide()
+      if (demo && String(demo.id) === String(rideId)) {
+        const ride = { ...demo, is_paid: demo.is_paid } as unknown as Ride
+        set({ currentRide: ride })
+        return ride
+      }
+      set({ currentRide: null })
+      return null
+    }
     try {
       const response = await api.get(`driver/rides/${rideId}`)
       const ride = response.data?.ride || response.data
@@ -223,6 +342,11 @@ export const useRidesStore = create<RidesState>((set, get) => ({
   },
 
   ratePassenger: async (rideId, rating, comment) => {
+    if (isDemoRideId(rideId)) {
+      clearDemoRide()
+      set({ currentRide: null })
+      return { success: true }
+    }
     try {
       await api.post(`driver/rides/${rideId}/rate-passenger`, { rating, comment })
     } catch {

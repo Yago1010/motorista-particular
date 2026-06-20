@@ -1,7 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/services/api'
+import { getDemoRide, isDemoRideId, generateDemoPixCode, markDemoRidePaid, clearDemoRide, purgeTerminalDemoRide } from '@/utils/demoRideBridge'
+import { getPersistedRideSnapshot } from '@/utils/activeRideSession'
+import { isRideDismissed } from '@/utils/dismissedRides'
+import { useRidesStore, type Ride } from '@/stores/rides'
 import { useAuthStore } from '@/stores/auth'
-import type { Ride } from '@/stores/rides'
+import { calculateChamaFare, pickTrustedFare } from '@/utils/fareCalculator'
 
 export const rideKeys = {
   all: ['rides'] as const,
@@ -26,11 +30,12 @@ function normalizeRide(raw: any, id?: string | number): Ride {
 
   let status = raw.status || 'searching'
   if (raw.is_cancelled) status = 'cancelled'
-  else if (raw.is_completed) status = 'completed'
-  else if (raw.is_started) status = 'in_progress'
-  else if (raw.is_walker_arrived) status = 'pickup_arrived'
-  else if (raw.confirmed_walker || raw.status === 'accepted') status = 'accepted'
+  else if (raw.is_completed || raw.status === 'completed') status = 'completed'
   else if (raw.status === 'destination_arrived') status = 'destination_arrived'
+  else if (raw.is_started || raw.status === 'in_progress') status = 'in_progress'
+  else if (raw.is_walker_arrived || raw.status === 'pickup_arrived') status = 'pickup_arrived'
+  else if (raw.confirmed_walker || raw.status === 'accepted') status = 'accepted'
+  else if (raw.status === 'searching' || raw.current_walker) status = 'searching'
 
   return {
     id: raw.id ?? id,
@@ -40,6 +45,8 @@ function normalizeRide(raw: any, id?: string | number): Ride {
     destination_address: raw.destination_address,
     fare: raw.fare ?? raw.estimated_fare ?? raw.total,
     estimated_fare: raw.estimated_fare ?? raw.fare ?? raw.total,
+    distance_km: raw.distance_km ?? (raw.distance != null ? Number(raw.distance) : undefined),
+    duration_min: raw.duration_min ?? (raw.time != null ? Number(raw.time) : undefined),
     payment_method: typeof paymentMode === 'number' ? paymentMap[paymentMode] || 'cash' : paymentMode,
     origin_lat: raw.origin_lat ?? raw.owner_latitude,
     origin_lng: raw.origin_lng ?? raw.owner_longitude,
@@ -58,11 +65,42 @@ function normalizeRide(raw: any, id?: string | number): Ride {
 }
 
 export async function fetchRideById(id: string | number): Promise<Ride> {
-  const { data } = await api.get(`rider/rides/${id}`)
-  return normalizeRide(data.ride || data, id)
+  if (isDemoRideId(id)) {
+    const demo = getDemoRide()
+    if (demo && String(demo.id) === String(id)) {
+      return normalizeRide(demo, id)
+    }
+    const snap = getPersistedRideSnapshot()
+    if (snap && String(snap.id) === String(id)) {
+      return normalizeRide(snap, id)
+    }
+    throw new Error('Corrida não encontrada')
+  }
+  try {
+    const { data } = await api.get(`rider/rides/${id}`)
+    return normalizeRide(data.ride || data, id)
+  } catch {
+    const active = await fetchActiveRide()
+    if (active && String(active.id) === String(id)) {
+      return active
+    }
+    throw new Error('Corrida não encontrada')
+  }
 }
 
 export async function fetchRideLocation(id: string | number) {
+  if (isDemoRideId(id)) {
+    const demo = getDemoRide()
+    if (demo?.driver_lat != null && demo?.driver_lng != null) {
+      return {
+        lat: demo.driver_lat as number,
+        lng: demo.driver_lng as number,
+        distance: null as string | number | null,
+        time: null as number | null,
+      }
+    }
+    return null
+  }
   const { data } = await api.get(`rider/rides/${id}/location`)
   return {
     lat: data.latitude as number,
@@ -73,9 +111,20 @@ export async function fetchRideLocation(id: string | number) {
 }
 
 export async function fetchActiveRide(): Promise<Ride | null> {
+  purgeTerminalDemoRide()
+  const token = typeof localStorage !== 'undefined' ? localStorage.getItem('rider_token') : null
+  if (token === 'demo-rider-token') {
+    const demo = getDemoRide()
+    if (demo && !['completed', 'cancelled'].includes(demo.status || '') && !isRideDismissed(demo.id)) {
+      return normalizeRide(demo)
+    }
+    return null
+  }
   const { data } = await api.get('rider/rides/active')
   if (!data.ride) return null
-  return normalizeRide(data.ride)
+  const ride = normalizeRide(data.ride)
+  if (isRideDismissed(ride.id)) return null
+  return ride
 }
 
 export async function estimateFareFromServer(params: {
@@ -95,23 +144,13 @@ export async function estimateFareFromServer(params: {
 }
 
 const CATEGORY_MULTIPLIERS: Record<string, number> = {
-  Moto: 0.72,
+  Moto: 0.88,
   Carro: 1,
-  'Carro Premium': 1.58,
-}
-
-/** Tarifas por categoria (base + km + min) — alinhado ao backend e RequestRideView. */
-export const FARE_RATES: Record<string, { base: number; perKm: number; perMin: number }> = {
-  Moto: { base: 5, perKm: 2.5, perMin: 0.3 },
-  Carro: { base: 8, perKm: 3.5, perMin: 0.5 },
-  'Carro Premium': { base: 15, perKm: 5.5, perMin: 0.8 },
+  'Carro Premium': 1.45,
 }
 
 export function calculateFareFromRoute(distanceMeters: number, durationSeconds: number, category: string) {
-  const rates = FARE_RATES[category] ?? FARE_RATES.Carro
-  const km = distanceMeters / 1000
-  const min = durationSeconds / 60
-  return Math.round((rates.base + km * rates.perKm + min * rates.perMin) * 100) / 100
+  return calculateChamaFare(distanceMeters, durationSeconds, category).estimated_fare
 }
 
 export function applyCategoryMultiplier(baseFare: number, category: string) {
@@ -119,25 +158,31 @@ export function applyCategoryMultiplier(baseFare: number, category: string) {
   return Math.round(baseFare * mult * 100) / 100
 }
 
-/** Estimativa local quando a API não responde (usa tarifa Carro). */
 export function estimateLocalFare(distanceMeters: number, durationSeconds: number) {
-  return calculateFareFromRoute(distanceMeters, durationSeconds, 'Carro')
+  return calculateChamaFare(distanceMeters, durationSeconds, 'Carro').estimated_fare
 }
 
 export function useEstimateFareQuery(
   distanceMeters: number | null,
   durationSeconds: number | null,
   categoryId: number,
+  categoryName = 'Carro',
   enabled = true
 ) {
   return useQuery({
     queryKey: ['fare-estimate', distanceMeters, durationSeconds, categoryId],
-    queryFn: () =>
-      estimateFareFromServer({
+    queryFn: async () => {
+      const server = await estimateFareFromServer({
         distance_meters: distanceMeters!,
         duration_seconds: durationSeconds!,
         category_id: categoryId,
-      }),
+      })
+      const local = calculateChamaFare(distanceMeters!, durationSeconds!, categoryName).estimated_fare
+      return {
+        ...server,
+        estimated_fare: pickTrustedFare(local, server.estimated_fare),
+      }
+    },
     enabled: enabled && !!distanceMeters && !!durationSeconds && distanceMeters > 0,
     staleTime: 60_000,
     retry: 0,
@@ -145,14 +190,26 @@ export function useEstimateFareQuery(
 }
 
 export function useRideQuery(rideId?: string | number, enabled = true) {
+  const cached = useRidesStore((s) =>
+    s.currentRide && rideId != null && String(s.currentRide.id) === String(rideId) ? s.currentRide : null
+  )
+  const persisted =
+    rideId != null && String(getPersistedRideSnapshot()?.id) === String(rideId)
+      ? getPersistedRideSnapshot()
+      : null
   return useQuery({
     queryKey: rideKeys.detail(rideId || ''),
     queryFn: () => fetchRideById(rideId!),
     enabled: !!rideId && enabled,
+    initialData: cached ?? persisted ?? undefined,
+    placeholderData: (prev) => prev ?? cached ?? persisted ?? undefined,
     refetchInterval: (query) => {
       const status = query.state.data?.status
-      if (!status || ['completed', 'cancelled'].includes(status)) return false
-      return 4000
+      const paid = query.state.data?.is_paid
+      if (isDemoRideId(rideId)) return 1500
+      if (!status || status === 'cancelled') return false
+      if (status === 'completed' && paid) return false
+      return 3000
     },
   })
 }
@@ -160,9 +217,12 @@ export function useRideQuery(rideId?: string | number, enabled = true) {
 export function useDriverLocationQuery(rideId?: string | number, enabled = true) {
   return useQuery({
     queryKey: rideKeys.location(rideId || ''),
-    queryFn: () => fetchRideLocation(rideId!),
+    queryFn: async () => {
+      const loc = await fetchRideLocation(rideId!)
+      return loc
+    },
     enabled: !!rideId && enabled,
-    refetchInterval: 3000,
+    refetchInterval: isDemoRideId(rideId) ? 1500 : 3000,
   })
 }
 
@@ -209,6 +269,10 @@ export function usePayRideMutation() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async ({ rideId, payment_method }: { rideId: string | number; payment_method: string }) => {
+      if (isDemoRideId(rideId)) {
+        markDemoRidePaid(payment_method)
+        return { success: true, is_paid: true }
+      }
       const { data } = await api.post(`rider/rides/${rideId}/pay`, { payment_method })
       return data as { success: boolean; pix_code?: string; is_paid?: boolean; message?: string }
     },
@@ -219,6 +283,16 @@ export function usePayRideMutation() {
 }
 
 export async function fetchRidePaymentPix(rideId: string | number) {
+  if (isDemoRideId(rideId)) {
+    const demo = getDemoRide()
+    const amount = demo?.fare ?? demo?.estimated_fare ?? 0
+    const pix_code = generateDemoPixCode(rideId, amount)
+    return {
+      pix_code,
+      amount,
+      qr_url: `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(pix_code)}`,
+    }
+  }
   const { data } = await api.get(`rider/rides/${rideId}/payment-pix`)
   return data as { pix_code: string; amount: number; qr_url?: string }
 }
@@ -234,6 +308,10 @@ export function useRateDriverMutation() {
       rating: number
       comment?: string
     }) => {
+      if (isDemoRideId(rideId)) {
+        clearDemoRide()
+        return { success: true }
+      }
       const { data } = await api.post(`rider/rides/${rideId}/rate`, { rating, comment })
       return data
     },
