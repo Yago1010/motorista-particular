@@ -35,10 +35,14 @@ self.addEventListener('activate', (event) => {
   )
 })
 
-// Fetch event - network first, fallback to cache
+// Fetch event - network first; never cache SPA navigations
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return
   if (!event.request.url.startsWith('http')) return
+  if (event.request.mode === 'navigate') {
+    event.respondWith(fetch(event.request))
+    return
+  }
 
   event.respondWith(
     fetch(event.request)

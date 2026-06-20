@@ -1,215 +1,150 @@
 <!DOCTYPE html>
 <html lang="<?php echo App::getLocale() === 'pt' ? 'pt-BR' : e(App::getLocale()); ?>">
-    <!-- START Head -->
     <head>
-        <!-- START META SECTION -->
         <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <meta name="author" content="pampersdry.info">
         <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0">
-        <title><?= e($title) ?> | <?= e(Config::get('app.website_title')) ?> <?= e(trans('admin.title_dashboard_suffix')) ?></title>
-        
-        <?php 
+        <title><?= e($title) ?> | <?= e(Config::get('app.website_title')) ?></title>
+
+        <?php
             $active = app_theme_active_color();
             $logo = app_brand_logo();
             $favicon = app_brand_favicon();
+            $siteTitle = Config::get('app.website_title', 'Chama no 12');
+            $rhNav = chama_admin_nav_stats();
         ?>
 
         <link rel="icon" type="image/ico" href="<?php echo asset_url(); ?><?php echo $favicon;?>">
-
         <link href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css" rel="stylesheet" type="text/css" />
         <link href="//cdnjs.cloudflare.com/ajax/libs/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet" type="text/css" />
-        <!-- Ionicons -->
-        <link href="//code.ionicframework.com/ionicons/1.5.2/css/ionicons.min.css" rel="stylesheet" type="text/css" />
-        <!-- Theme style -->
         <link href="<?php echo asset_url(); ?>/admins/css/AdminLTE.css" rel="stylesheet" type="text/css" />
         <link href="<?php echo asset_url(); ?>/admins/css/custom-admin.css" rel="stylesheet" type="text/css" />
+        <link href="<?php echo asset_url(); ?>/admins/css/chama-admin.css" rel="stylesheet" type="text/css" />
         <link href="<?php echo asset_url(); ?>/web/css/password-toggle.css" rel="stylesheet" type="text/css" />
 
         <script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
         <link rel="stylesheet" href="//code.jquery.com/ui/1.11.3/themes/smoothness/jquery-ui.css">
-        <script src="//code.jquery.com/jquery-1.10.2.js"></script>
         <script src="//code.jquery.com/ui/1.11.3/jquery-ui.js"></script>
         <script src="<?php echo asset_url(); ?>/admins/js/validator/jquery.validate.min.js"></script>
-
-
-        <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
-        <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
-        <!--[if lt IE 9]>
-          <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
-          <script src="https://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
-        <![endif]-->
-
-        <style type="text/css">
-            .error{
-                color:red;
-            }
-        </style>
+        <style type="text/css">.error { color: #f87171; }</style>
     </head>
 
-    <body class="skin-blue" >
-        <!-- header logo: style can be found in header.less -->
-        <header class="header">
-         <a  class="logo" href="{{ URL::Route('AdminMapview') }}" >
-                <!-- Add the class icon to your logo image or logo icon to add the margining -->
-                <img src="<?php echo asset_url(); ?><?php echo $logo; ?>"  width="40" height="40"> <?php  $siteTitle = Config::get('app.website_title'); echo $siteTitle;  ?>
-            </a>
-            <!-- Header Navbar: style can be found in header.less -->
-                   <nav class="navbar navbar-static-top" role="navigation">
-                <!-- Sidebar toggle button-->
-                <a href="#" class="navbar-btn sidebar-toggle" data-toggle="offcanvas" role="button">
-                    <span class="sr-only"><?php echo e(trans('admin.nav_toggle')); ?></span>
-                    <span class="icon-bar"></span>
-                    <span class="icon-bar"></span>
-                    <span class="icon-bar"></span>
-                </a>
-                <div class="navbar-right">
-                    <ul class="nav navbar-nav">
-                        <li style="padding-top: 8px; padding-right: 10px;">
-                            @include('partials.language-switcher')
-                        </li>
-                        <!-- User Account: style can be found in dropdown.less -->
-                        <li class="dropdown user user-menu">
-                            <a href="#" class="dropdown-toggle" data-toggle="dropdown">
-                                <i class="glyphicon glyphicon-user"></i>
-                                <span><?php echo e(trans('admin.user_admin')); ?></span>
-                            </a>
-                            <ul class="dropdown-menu">
-                             
-                                <!-- Menu Body -->
-                                <li class="user-body">
-                                    <div class="col-xs-12 text-center">
-                                        <a href="{{ URL::Route('AdminAdmins') }}"><?php echo e(trans('admin.admin_control')); ?></a>
-                                    </div>
-                                    
-                                </li>
-                                <!-- Menu Footer-->
-                                <li class="user-footer">
-                                    <div class="col-md-12">
-                                        <a class="btn btn-default btn-flat btn-block" href="{{ URL::Route('AdminLogout') }}"><?php echo e(trans('admin.log_out')); ?></a>
-                                    </div>
-                                   
-                                </li>
-                            </ul>
-                        </li>
-                    </ul>
-                </div>
-            </nav>
-        </header>
+    <body class="skin-blue skin-chama rh-console">
+        <header class="header"></header>
 
         <div class="wrapper row-offcanvas row-offcanvas-left">
-            <!-- Left side column. contains the logo and sidebar -->
             <aside class="left-side sidebar-offcanvas">
-                <!-- sidebar: style can be found in sidebar.less -->
-                <section class="sidebar">
+                <section class="sidebar rh-sidebar">
+                    <div class="rh-sidebar-brand">
+                        <img src="<?php echo asset_url(); ?><?php echo $logo; ?>" alt="<?php echo e($siteTitle); ?>">
+                        <div class="rh-sidebar-brand-text">
+                            <strong><?php echo e($siteTitle); ?></strong>
+                            <small>Admin Console</small>
+                        </div>
+                    </div>
+
+                    <p class="rh-menu-label">Menu principal</p>
                     <ul class="sidebar-menu">
-                      
-
-                        <li id="dashboard" title="{{ trans('admin.menu_dashboard') }}">
-                            <a href="{{ URL::Route('AdminReport') }}"><i class="fa fa-dashboard"></i> <span>{{ trans('admin.menu_dashboard') }}</span></a>
+                        <li id="dashboard">
+                            <a href="{{ URL::Route('AdminReport') }}"><i class="fa fa-th-large"></i> <span>Dashboard</span></a>
+                        </li>
+                        <li id="chama-users">
+                            <a href="{{ URL::Route('AdminChamaUsers') }}">
+                                <i class="fa fa-users"></i>
+                                <span>Usuários</span>
+                                @if($rhNav['pending_drivers'] > 0)
+                                <span class="rh-nav-badge">{{ $rhNav['pending_drivers'] }}</span>
+                                @endif
+                            </a>
+                        </li>
+                        <li id="walks">
+                            <a href="{{ URL::Route('AdminRequests') }}">
+                                <i class="fa fa-check-circle"></i>
+                                <span>Aprovar Corridas</span>
+                                @if($rhNav['pending_rides'] > 0)
+                                <span class="rh-nav-badge">{{ $rhNav['pending_rides'] }}</span>
+                                @endif
+                            </a>
+                        </li>
+                        <li id="map-view">
+                            <a href="{{ URL::Route('AdminMapview') }}"><i class="fa fa-map-marker"></i> <span>Corridas ao Vivo</span></a>
+                        </li>
+                        <li id="payments">
+                            <a href="{{ URL::Route('AdminPayment') }}"><i class="fa fa-money"></i> <span>Financeiro</span></a>
+                        </li>
+                        <li id="promo_code">
+                            <a href="{{ URL::Route('AdminPromoCodes') }}"><i class="fa fa-gift"></i> <span>Cupons &amp; Promoções</span></a>
+                        </li>
+                        <li id="settings">
+                            <a href="{{ URL::Route('AdminSettings') }}"><i class="fa fa-cog"></i> <span>Configurações</span></a>
                         </li>
 
-                        <li id="map-view" title="{{ trans('admin.menu_map_view') }}">
-                            <a href="{{ URL::Route('AdminMapview') }}"><i class="fa fa-map-marker"></i> <span>{{ trans('admin.menu_map_view') }}</span></a>
-                        </li>
-
-                        <li id="walkers" title="{{ trans('admin.menu_providers') }}" >
-                            <a href="{{ URL::Route('AdminProviders') }}"><i class="fa fa-users"></i> <span>{{ trans('admin.menu_providers') }}</span></a>
-                        </li> 
-                        <li id="walks" title="{{ trans('admin.menu_requests') }}">
-                            <a href="{{ URL::Route('AdminRequests') }}"><i class="fa fa-location-arrow"></i> <span>{{ trans('admin.menu_requests') }}</span></a>
-                        </li>
-                        <li id="owners" title="{{ trans('admin.menu_users') }}">
-                            <a href="{{ URL::Route('AdminUsers') }}"><i class="fa fa-users"></i> <span>{{ trans('admin.menu_users') }}</span></a>
-                        </li>
-                        <li id="reviews" title="{{ trans('admin.menu_reviews') }}">
-                            <a href="{{ URL::Route('AdminReviews') }}"><i class="fa fa-thumbs-o-up"></i> <span>{{ trans('admin.menu_reviews') }}</span></a>
-                        </li>
-                        <li id="settings" title="{{ trans('admin.menu_settings') }}">
-                            <a href="{{ URL::Route('AdminSettings') }}"><i class="fa fa-cogs"></i> <span>{{ trans('admin.menu_settings') }}</span></a>
-                        </li>
-                        <li id="information" title="{{ trans('admin.menu_information') }}">
-                            <a href="{{ URL::Route('AdminInformations') }}"><i class="fa fa-info-circle"></i> <span>{{ trans('admin.menu_information') }}</span></a>
-                        </li>
-                        <li id="provider-type" title="{{ trans('admin.menu_types') }}">
-                            <a href="{{ URL::Route('AdminProviderTypes') }}"><i class="fa fa-tags"></i> <span>{{ trans('admin.menu_types') }}</span></a>
-                        </li>
-                        <li id="document-type" title="{{ trans('admin.menu_documents') }}">
-                            <a href="{{ URL::Route('AdminDocumentTypes') }}"><i class="fa fa-file-text-o"></i> <span>{{ trans('admin.menu_documents') }}</span></a>
-                        </li>
-                        <li id="promo_code" title="{{ trans('admin.menu_promo_codes') }}">
-                            <a href="{{ URL::Route('AdminPromoCodes') }}"><i class="fa fa-gift"></i> <span>{{ trans('admin.menu_promo_codes') }}</span></a>
-                        </li>
-                        <li id="keywords" title="{{ trans('admin.menu_customize') }}">
-                            <a href="{{ URL::Route('AdminKeywords') }}"><i class="fa fa-pencil-square"></i> <span>{{ trans('admin.menu_customize') }}</span></a>
-                        </li>
-                        <li id="payments" title="{{ trans('admin.menu_payment_details') }}">
-                            <a href="{{ URL::Route('AdminPayment') }}"><i class="fa fa-pencil-square"></i> <span>{{ trans('admin.menu_payment_details') }}</span></a>
-                        </li>
-                
+                        <li class="header">Operação Chama</li>
+                        <li id="pricing"><a href="{{ URL::Route('AdminPricing') }}"><i class="fa fa-calculator"></i> <span>Tarifas / KM</span></a></li>
+                        <li id="chama-cities"><a href="{{ URL::Route('AdminChamaCities') }}"><i class="fa fa-building"></i> <span>Cidades</span></a></li>
+                        <li id="chama-banners"><a href="{{ URL::Route('AdminChamaBanners') }}"><i class="fa fa-bullhorn"></i> <span>Anúncios</span></a></li>
+                        <li id="reviews"><a href="{{ URL::Route('AdminReviews') }}"><i class="fa fa-thumbs-up"></i> <span>Avaliações</span></a></li>
                     </ul>
+
+                    <div class="rh-sidebar-status">
+                        <strong><span class="rh-status-dot"></span> Sistema online</strong>
+                        <small>API estável · Chama no 12</small>
+                    </div>
                 </section>
-                <!-- /.sidebar -->
             </aside>
 
-            <!-- Right side column. Contains the navbar and content of the page -->
             <aside class="right-side">
+                <div class="rh-topbar">
+                    <button type="button" class="rh-topbar-btn rh-mobile-toggle" id="rh-sidebar-toggle" aria-label="Menu">
+                        <i class="fa fa-bars"></i>
+                    </button>
+                    <form class="rh-topbar-search" method="get" action="{{ URL::Route('AdminSearch') }}">
+                        <input type="hidden" name="type" value="user">
+                        <i class="fa fa-search"></i>
+                        <input type="search" name="q" placeholder="Buscar corridas, nomes, placas..." autocomplete="off">
+                    </form>
+                    <div class="rh-topbar-actions">
+                        <a href="{{ URL::Route('AdminMapview') }}" class="rh-topbar-btn" title="Mapa ao vivo"><i class="fa fa-map"></i></a>
+                        <a href="{{ URL::Route('AdminAdmins') }}" class="rh-topbar-avatar" title="Admin">A</a>
+                        <a href="{{ URL::Route('AdminLogout') }}" class="rh-topbar-btn" title="Sair"><i class="fa fa-sign-out"></i></a>
+                    </div>
+                </div>
 
-                  <section class="content-header">
-                    <h1>
-                       <?= $title ?>
-                       
-                    </h1>
-                
-                </section>
- 
-                <!-- Main content -->
                 <section class="content">
+                    <div class="rh-page-head">
+                        <h1><?= e($title) ?></h1>
+                        <p>Painel administrativo — <?= e($siteTitle) ?></p>
+                    </div>
                     @yield('content')
-                </section><!-- /.content -->
-            </aside><!-- /.right-side -->
-        </div><!-- ./wrapper -->
-        <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.1/js/bootstrap.min.js" type="text/javascript"></script>
-        <!-- AdminLTE App -->
-        <script src="<?php echo asset_url(); ?>/admins/js/AdminLTE/app.js" type="text/javascript"></script>
-        <!-- AdminLTE for demo purposes -->
-        <script src="<?php echo asset_url(); ?>/admins/js/AdminLTE/demo.js" type="text/javascript"></script>
+                </section>
+            </aside>
+        </div>
 
+        <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.1/js/bootstrap.min.js"></script>
+        <script src="<?php echo asset_url(); ?>/admins/js/AdminLTE/app.js"></script>
         <script type="text/javascript">
-            $("#<?= $page ?>").addClass("active");
-            $('#option3').show();
-            $('.fade').css('opacity', '1');
-            $('.nav-pills > li.active > a, .nav-pills > li.active > a:hover, .nav-pills > li.active > a:focus').css('color', '#ffffff');
-            $('.nav-pills > li.active > a, .nav-pills > li.active > a:hover, .nav-pills > li.active > a:focus').css('background-color', '<?php echo $active;?>');
+            (function () {
+                var page = <?php echo json_encode($page); ?>;
+                var userPages = ['chama-users', 'owners', 'walkers'];
+                if (userPages.indexOf(page) >= 0) {
+                    $('#chama-users').addClass('active');
+                } else {
+                    $('#' + page).addClass('active');
+                }
+            })();
+            $('#rh-sidebar-toggle').on('click', function () {
+                $('body').toggleClass('sidebar-open');
+            });
         </script>
-
         <script>
-            $(function() {
-
-                $( "#start-date").datepicker({
-                    defaultDate: "+1w",
+            $(function () {
+                $("#start-date, #end-date").datepicker({
+                    dateFormat: 'dd/mm/yy',
                     changeMonth: true,
-                    numberOfMonths: 1,
-                    onClose: function( selectedDate ) {
-                        $( "#end-date" ).datepicker( "option", "minDate", selectedDate );
-                    }
-                });
-                $( "#end-date" ).datepicker({
-                    defaultDate: "+1w",
-                    changeMonth: true,
-                    numberOfMonths: 1,
-                    onClose: function( selectedDate ) {
-                        $( "#start-date" ).datepicker( "option", "maxDate", selectedDate );
-                    }
+                    changeYear: true
                 });
             });
         </script>
-        <script type="text/javascript">
-            $(document).ready(function(){
-                $("#myModal").modal('show');
-            });
-        </script>
-        <script src="<?php echo asset_url(); ?>/web/js/password-toggle.js" type="text/javascript"></script>
+        <script src="<?php echo asset_url(); ?>/web/js/password-toggle.js"></script>
     </body>
-    <!--/ END Body -->
 </html>

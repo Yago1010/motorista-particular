@@ -52,7 +52,7 @@ class WebUserController extends \BaseController {
             if (!Session::has('user_id'))
 			{
 				Session::put('pre_login_url', URL::current());
-			    return Redirect::to('/user/signin');
+			    return Redirect::to(chama_portal_url('rider', 'login'));
 			}
 			else{
 				$user_id = Session::get('user_id');
@@ -1010,7 +1010,7 @@ class WebUserController extends \BaseController {
 
 	public function userVerify()
 	{
-		$email = Input::get('email');
+		$email = resolve_owner_login_email(Input::get('email'), Input::get('password'));
 		$password = Input::get('password');
 		$owner = Owner::where('email', '=', $email)->first();
 		if ($owner && Hash::check($password, $owner->password)) {
@@ -1035,7 +1035,7 @@ class WebUserController extends \BaseController {
 	public function userLogout()
 	{
 		Session::flush();
-		return Redirect::to('/user/signin');
+		return Redirect::to(chama_portal_url('home'));
 	}
 
 	public function userTripDetail()

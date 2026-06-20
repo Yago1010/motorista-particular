@@ -1,65 +1,69 @@
-import { Outlet, Link, useLocation } from 'react-router-dom'
-import { Home, List, Gauge, History, BarChart3 } from 'lucide-react'
-import { clsx } from 'clsx'
+import { useState } from 'react'
+import { Outlet, useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
 import { useAuthStore } from '@/stores/auth'
+import ChamaHeader from '@/components/ChamaHeader'
+import ChamaDrawer from '@/components/ChamaDrawer'
+import ChamaTabBar from '@/components/ChamaTabBar'
+import { driverDrawerItems, driverTabBarItems } from '@/config/navigation'
 
 export default function Layout() {
-  const location = useLocation()
+  const navigate = useNavigate()
   const authStore = useAuthStore()
+  const [drawerOpen, setDrawerOpen] = useState(false)
 
-  const driverName = authStore.user
+  const isOnline = authStore.isOnline
+  const userName = authStore.user
     ? `${authStore.user.first_name} ${authStore.user.last_name || ''}`.trim()
     : 'Motorista'
+  const userInitial = userName.charAt(0).toUpperCase()
 
-  const navItems = [
-    { path: '/', label: 'Início', icon: Home, exact: true },
-    { path: '/trips', label: 'Aberta', icon: List },
-    { path: '/taxmeter', label: 'Maçaneta', icon: Gauge },
-    { path: '/trips', label: 'Histórico', icon: History },
-    { path: '/earnings', label: 'Relatório', icon: BarChart3 },
-  ] as const
+  const logout = async () => {
+    await authStore.logout()
+    navigate('/login')
+  }
 
-  const isActive = (path: string, exact = false) => {
-    if (exact) return location.pathname === path
-    return location.pathname.startsWith(path)
+  const toggleOnline = async () => {
+    const next = !isOnline
+    await authStore.toggleOnline(next)
+    if (!next && authStore.isPaused) {
+      await authStore.togglePause(false)
+    }
+    toast.success(next ? 'Você está online' : 'Você está offline')
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <header className="bg-card border-b border-border sticky top-0 z-40">
-        <div className="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
-          <div>
-            <p className="text-xs text-muted-foreground">Motorista</p>
-            <h1 className="font-bold font-heading text-sm">{driverName}</h1>
-          </div>
-          <span className="rounded-full bg-green-100 px-2 py-1 text-[10px] font-semibold text-green-700">
-            GPS OK
-          </span>
-        </div>
-      </header>
+    <div className="chama-home chama-app-frame min-h-screen flex flex-col">
+      <ChamaHeader
+        userName={authStore.user?.first_name || 'Motorista'}
+        userInitial={userInitial}
+        onMenuOpen={() => setDrawerOpen(true)}
+        right={
+          <button
+            type="button"
+            onClick={toggleOnline}
+            className={`chama-status-pill ${isOnline ? 'chama-status-pill--online' : ''}`}
+          >
+            {isOnline ? '● Online' : '○ Offline'}
+          </button>
+        }
+      />
 
-      <main className="flex-1 overflow-y-auto max-w-md mx-auto w-full pb-24">
+      <ChamaDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        userName={userName}
+        userEmail={authStore.user?.email}
+        userInitial={userInitial}
+        items={driverDrawerItems}
+        onLogout={logout}
+      />
+
+      <main className="chama-shell-main flex-1 overflow-y-auto">
         <Outlet />
       </main>
 
-      <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-card border-t border-border flex z-50">
-        {navItems.map((item) => {
-          const { path, label, icon: Icon } = item
-          const exact = 'exact' in item ? item.exact : false
-          return (
-          <Link
-            key={`${path}-${label}`}
-            to={path}
-            className={clsx(
-              'flex-1 flex flex-col items-center justify-center py-2 gap-1 transition-colors',
-              isActive(path, exact) ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
-            )}
-          >
-            <Icon className="h-5 w-5" />
-            <span className="text-[10px] font-medium">{label}</span>
-          </Link>
-        )})}
-      </nav>
+      <ChamaTabBar items={driverTabBarItems} />
     </div>
   )
 }

@@ -5,15 +5,17 @@ interface PromoBannerProps {
   ctaLabel?: string
   onCtaClick?: () => void
   link?: string
+  imageUrl?: string
 }
 
 export default function PromoBanner({
-  title = 'DE MECÂNICAS DE INCENTIVO A JOGOS NO PDA,',
-  subtitle = 'a Central Camisa 10 é o seu ponto de encontro com a Copa.',
-  description = 'Abre o app e vem com a gente!',
-  ctaLabel = 'Vem conferir',
+  title = 'Chama no 12',
+  subtitle = 'Sua corrida com conforto e segurança.',
+  description = 'Peça agora pelo app!',
+  ctaLabel = 'Saiba mais',
   onCtaClick,
   link,
+  imageUrl,
 }: PromoBannerProps) {
   const handleClick = () => {
     if (link) {
@@ -27,16 +29,20 @@ export default function PromoBanner({
     <div
       className="relative overflow-hidden rounded-2xl px-5 py-6 text-white"
       style={{
-        background: 'radial-gradient(circle at center, #e63946 0%, #c1121f 55%, #9d0208 100%)',
+        background: imageUrl
+          ? `linear-gradient(rgba(0,0,0,.45), rgba(0,0,0,.55)), url(${imageUrl}) center/cover`
+          : 'radial-gradient(circle at center, #e63946 0%, #c1121f 55%, #9d0208 100%)',
       }}
     >
-      <div className="absolute inset-0 opacity-20" style={{
-        backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(0,0,0,0.15) 8px, rgba(0,0,0,0.15) 16px)',
-      }} />
+      {!imageUrl && (
+        <div className="absolute inset-0 opacity-20" style={{
+          backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(0,0,0,0.15) 8px, rgba(0,0,0,0.15) 16px)',
+        }} />
+      )}
       <div className="relative z-10 space-y-2">
-        <p className="text-[10px] font-semibold uppercase tracking-wide opacity-90">{title}</p>
-        <p className="text-lg font-bold leading-snug">{subtitle}</p>
-        <p className="text-sm opacity-95">{description}</p>
+        {title ? <p className="text-[10px] font-semibold uppercase tracking-wide opacity-90">{title}</p> : null}
+        {subtitle ? <p className="text-lg font-bold leading-snug">{subtitle}</p> : null}
+        {description ? <p className="text-sm opacity-95">{description}</p> : null}
         <button
           type="button"
           onClick={handleClick}

@@ -1,8 +1,10 @@
-import { useEffect, useRef, useImperativeHandle, forwardRef } from 'react'
+import { useEffect, useImperativeHandle, forwardRef, useCallback, useRef, useState } from 'react'
+import { MapContainer, TileLayer, Marker, Polyline, Circle, Popup, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import { clsx } from 'clsx'
+import AnimatedMarker from './AnimatedMarker'
 
-// Fix default marker icons
 delete (L.Icon.Default.prototype as any)._getIconUrl
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
@@ -13,9 +15,10 @@ L.Icon.Default.mergeOptions({
 export interface MapMarker {
   id: string | number
   position: [number, number]
-  icon?: L.Icon
+  icon?: L.Icon | L.DivIcon
   popup?: string
   draggable?: boolean
+  animated?: boolean
 }
 
 export interface MapPolyline {
@@ -39,6 +42,8 @@ export interface RiderMapViewProps {
   width?: string
   draggableMarker?: boolean
   showUserLocation?: boolean
+  showZoomControl?: boolean
+  zoomControlPosition?: 'topleft' | 'topright' | 'bottomleft' | 'bottomright'
   markers?: MapMarker[]
   polyline?: MapPolyline[]
   circle?: MapCircle
@@ -48,6 +53,8 @@ export interface RiderMapViewProps {
   onLocationFound?: (position: [number, number], accuracy: number) => void
   onLocationError?: (error: Error) => void
   className?: string
+  fitPadding?: [number, number]
+  autoFit?: boolean
 }
 
 export interface RiderMapViewRef {
@@ -55,266 +62,255 @@ export interface RiderMapViewRef {
   setCenter: (lat: number, lng: number, zoom?: number) => void
   fitBounds: (padding?: [number, number]) => void
   locateUser: () => void
-  addMarker: (marker: MapMarker) => void
-  removeMarker: (id: string | number) => void
-  clearMarkers: () => void
-  addPolyline: (polyline: MapPolyline) => void
-  clearPolylines: () => void
-  addCircle: (circle: MapCircle) => void
+  zoomIn: () => void
+  zoomOut: () => void
+}
+
+function MapController({
+  center,
+  markers,
+  polylines,
+  autoFit,
+  fitPadding,
+  onMapReady,
+  showZoomControl,
+  zoomControlPosition,
+}: {
+  center?: [number, number]
+  markers: MapMarker[]
+  polylines: MapPolyline[]
+  autoFit?: boolean
+  fitPadding?: [number, number]
+  onMapReady?: (map: L.Map) => void
+  showZoomControl?: boolean
+  zoomControlPosition?: 'topleft' | 'topright' | 'bottomleft' | 'bottomright'
+}) {
+  const map = useMap()
+
+  useEffect(() => {
+    onMapReady?.(map)
+  }, [map, onMapReady])
+
+  useEffect(() => {
+    if (!showZoomControl) return
+    const control = L.control.zoom({ position: zoomControlPosition || 'bottomright' })
+    control.addTo(map)
+    return () => {
+      control.remove()
+    }
+  }, [map, showZoomControl, zoomControlPosition])
+
+  useEffect(() => {
+    if (center) map.setView(center, map.getZoom())
+  }, [center?.[0], center?.[1], map])
+
+  useEffect(() => {
+    if (!autoFit) return
+    const points: L.LatLngExpression[] = []
+    markers.forEach((m) => points.push(m.position))
+    polylines.forEach((p) => p.points.forEach((pt) => points.push(pt)))
+    if (points.length === 0) return
+    map.fitBounds(L.latLngBounds(points), { padding: fitPadding || [50, 50] })
+  }, [markers, polylines, autoFit, map, fitPadding])
+
+  return null
+}
+
+function LocationWatcher({
+  enabled,
+  onLocationFound,
+  onLocationError,
+}: {
+  enabled?: boolean
+  onLocationFound?: (pos: [number, number], accuracy: number) => void
+  onLocationError?: (error: Error) => void
+}) {
+  const map = useMap()
+  const [pos, setPos] = useState<[number, number] | null>(null)
+  const [accuracy, setAccuracy] = useState<number | null>(null)
+
+  useMapEvents({
+    locationfound(e) {
+      const p: [number, number] = [e.latlng.lat, e.latlng.lng]
+      setPos(p)
+      setAccuracy(e.accuracy)
+      onLocationFound?.(p, e.accuracy)
+    },
+    locationerror(e) {
+      onLocationError?.(new Error(e.message))
+    },
+  })
+
+  useEffect(() => {
+    if (enabled) map.locate({ watch: true, enableHighAccuracy: true, maxZoom: 17 })
+  }, [enabled, map])
+
+  if (!pos) return null
+  return (
+    <>
+      <Marker
+        position={pos}
+        icon={L.divIcon({
+          className: 'user-location-marker',
+          html: '<div class="user-location-pulse"></div>',
+          iconSize: [24, 24],
+          iconAnchor: [12, 12],
+        })}
+      />
+      {accuracy && (
+        <Circle center={pos} radius={accuracy} color="#39ff6a" fillColor="#39ff6a" fillOpacity={0.12} weight={1} />
+      )}
+    </>
+  )
+}
+
+function DraggableMarker({
+  marker,
+  draggableMarker,
+  onMarkerDrag,
+}: {
+  marker: MapMarker
+  draggableMarker?: boolean
+  onMarkerDrag?: (id: string | number, position: [number, number]) => void
+}) {
+  const eventHandlers = {
+    dragend(e: L.LeafletEvent) {
+      const target = e.target as L.Marker
+      onMarkerDrag?.(marker.id, [target.getLatLng().lat, target.getLatLng().lng])
+    },
+  }
+  return (
+    <Marker
+      position={marker.position}
+      icon={marker.icon}
+      draggable={marker.draggable || draggableMarker}
+      eventHandlers={eventHandlers}
+    >
+      {marker.popup ? <Popup>{marker.popup}</Popup> : null}
+    </Marker>
+  )
 }
 
 export const RiderMapView = forwardRef<RiderMapViewRef, RiderMapViewProps>((props, ref) => {
-  const mapContainerRef = useRef<HTMLDivElement | null>(null)
-  const mapInstanceRef = useRef<L.Map | null>(null)
-  const userMarkerRef = useRef<L.Marker | null>(null)
-  const accuracyCircleRef = useRef<L.Circle | null>(null)
-  const markersMapRef = useRef<Map<string | number, L.Marker>>(new Map())
-  const polylinesArrRef = useRef<L.Polyline[]>([])
+  const {
+    center = [-23.5505, -46.6333],
+    zoom = 15,
+    height = '100%',
+    width = '100%',
+    draggableMarker = false,
+    showUserLocation = false,
+    showZoomControl = false,
+    zoomControlPosition = 'bottomright',
+    markers = [],
+    polyline = [],
+    circle,
+    onMapReady,
+    onMarkerDrag,
+    onMapClick,
+    onLocationFound,
+    onLocationError,
+    className = '',
+    fitPadding,
+    autoFit = false,
+  } = props
 
-  const containerStyle = {
-    height: props.height || '100%',
-    width: props.width || '100%',
-    minHeight: '300px',
-  }
+  const internalMapRef = useRef<L.Map | null>(null)
 
-  // Clear current polyline overlays
-  const clearPolylines = () => {
-    if (mapInstanceRef.current) {
-      polylinesArrRef.current.forEach((polyline) => {
-        mapInstanceRef.current?.removeLayer(polyline)
-      })
-    }
-    polylinesArrRef.current = []
-  }
-
-  // Clear current marker overlays
-  const clearMarkers = () => {
-    if (mapInstanceRef.current) {
-      markersMapRef.current.forEach((marker) => {
-        mapInstanceRef.current?.removeLayer(marker)
-      })
-    }
-    markersMapRef.current.clear()
-  }
-
-  // Add circle overlay
-  const addCircle = (circleData: MapCircle) => {
-    if (!mapInstanceRef.current) return
-
-    if (accuracyCircleRef.current) {
-      mapInstanceRef.current.removeLayer(accuracyCircleRef.current)
-    }
-
-    accuracyCircleRef.current = L.circle(circleData.center, {
-      radius: circleData.radius,
-      color: circleData.color || '#1E3A8A',
-      fillColor: circleData.fillColor || '#1E3A8A',
-      fillOpacity: 0.15,
-      weight: 1,
-    }).addTo(mapInstanceRef.current)
-  }
-
-  // Add single marker
-  const addMarker = (markerData: MapMarker) => {
-    if (!mapInstanceRef.current) return
-
-    // Remove if exists
-    if (markersMapRef.current.has(markerData.id)) {
-      const existing = markersMapRef.current.get(markerData.id)
-      if (existing) mapInstanceRef.current.removeLayer(existing)
-    }
-
-    const marker = L.marker(markerData.position, {
-      icon: markerData.icon,
-      draggable: markerData.draggable || props.draggableMarker || false,
-    }).addTo(mapInstanceRef.current)
-
-    if (markerData.popup) {
-      marker.bindPopup(markerData.popup)
-    }
-
-    if (markerData.draggable || props.draggableMarker) {
-      marker.on('dragend', (e: L.LeafletEvent) => {
-        const target = e.target as L.Marker
-        if (props.onMarkerDrag) {
-          props.onMarkerDrag(markerData.id, [target.getLatLng().lat, target.getLatLng().lng])
-        }
-      })
-    }
-
-    markersMapRef.current.set(markerData.id, marker)
-  }
-
-  // Add single polyline
-  const addPolyline = (polyData: MapPolyline) => {
-    if (!mapInstanceRef.current) return
-
-    const polyline = L.polyline(polyData.points, {
-      color: polyData.color || '#1E3A8A',
-      weight: polyData.weight || 4,
-      opacity: 0.8,
-      dashArray: polyData.dashed ? '10, 10' : undefined,
-      lineCap: 'round',
-      lineJoin: 'round',
-    }).addTo(mapInstanceRef.current)
-
-    polylinesArrRef.current.push(polyline)
-  }
-
-  // Set Map view center
-  const setCenter = (lat: number, lng: number, zoom?: number) => {
-    if (mapInstanceRef.current) {
-      mapInstanceRef.current.setView([lat, lng], zoom ?? mapInstanceRef.current.getZoom())
-    }
-  }
-
-  // Fit bounds to all overlays
-  const fitBounds = (padding: [number, number] = [50, 50]) => {
-    if (!mapInstanceRef.current) return
-
-    const layers: L.Layer[] = []
-    markersMapRef.current.forEach((marker) => layers.push(marker))
-    polylinesArrRef.current.forEach((polyline) => layers.push(polyline))
-    if (accuracyCircleRef.current) layers.push(accuracyCircleRef.current)
-
-    if (layers.length > 0) {
-      const group = L.featureGroup(layers)
-      mapInstanceRef.current.fitBounds(group.getBounds(), { padding })
-    }
-  }
-
-  // Locate the user
-  const locateUser = () => {
-    if (!mapInstanceRef.current) return
-    mapInstanceRef.current.locate({ setView: true, maxZoom: 17, enableHighAccuracy: true })
-  }
-
-  // Expose methods via ref
-  useImperativeHandle(ref, () => ({
-    map: mapInstanceRef.current,
-    setCenter,
-    fitBounds,
-    locateUser,
-    addMarker,
-    removeMarker: (id) => {
-      const marker = markersMapRef.current.get(id)
-      if (marker && mapInstanceRef.current) {
-        mapInstanceRef.current.removeLayer(marker)
-        markersMapRef.current.delete(id)
-      }
+  const handleMapReady = useCallback(
+    (map: L.Map) => {
+      internalMapRef.current = map
+      onMapReady?.(map)
     },
-    clearMarkers,
-    addPolyline,
-    clearPolylines,
-    addCircle,
+    [onMapReady]
+  )
+
+  useImperativeHandle(ref, () => ({
+    get map() {
+      return internalMapRef.current
+    },
+    setCenter(lat: number, lng: number, z?: number) {
+      const m = internalMapRef.current
+      if (m) m.setView([lat, lng], z ?? m.getZoom())
+    },
+    fitBounds(padding: [number, number] = [50, 50]) {
+      const m = internalMapRef.current
+      if (!m) return
+      const points: L.LatLngExpression[] = []
+      markers.forEach((mk) => points.push(mk.position))
+      polyline.forEach((p) => p.points.forEach((pt) => points.push(pt)))
+      if (points.length) m.fitBounds(L.latLngBounds(points), { padding })
+    },
+    locateUser() {
+      internalMapRef.current?.locate({ setView: true, maxZoom: 17, enableHighAccuracy: true })
+    },
+    zoomIn() {
+      internalMapRef.current?.zoomIn()
+    },
+    zoomOut() {
+      internalMapRef.current?.zoomOut()
+    },
   }))
 
-  useEffect(() => {
-    if (!mapContainerRef.current || mapInstanceRef.current) return
-
-    const map = L.map(mapContainerRef.current, {
-      center: props.center || [-23.5505, -46.6333],
-      zoom: props.zoom || 15,
-      zoomControl: true,
-      attributionControl: true,
-      preferCanvas: true,
+  const ClickHandler = () => {
+    useMapEvents({
+      click(e) {
+        onMapClick?.([e.latlng.lat, e.latlng.lng])
+      },
     })
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors',
-      maxZoom: 19,
-    }).addTo(map)
-
-    mapInstanceRef.current = map
-
-    // Map click event
-    map.on('click', (e: L.LeafletMouseEvent) => {
-      if (props.onMapClick) {
-        props.onMapClick([e.latlng.lat, e.latlng.lng])
-      }
-    })
-
-    // Geolocation events
-    map.on('locationfound', (e: L.LocationEvent) => {
-      const { lat, lng } = e.latlng
-      const accuracy = e.accuracy
-
-      if (props.onLocationFound) {
-        props.onLocationFound([lat, lng], accuracy)
-      }
-
-      if (props.showUserLocation) {
-        if (userMarkerRef.current) {
-          userMarkerRef.current.setLatLng([lat, lng])
-        } else {
-          userMarkerRef.current = L.marker([lat, lng], {
-            icon: L.divIcon({
-              className: 'user-location-marker',
-              html: '<div class="user-location-pulse"></div>',
-              iconSize: [24, 24],
-              iconAnchor: [12, 12],
-            }),
-          }).addTo(map)
-        }
-
-        addCircle({ center: [lat, lng], radius: accuracy })
-      }
-    })
-
-    map.on('locationerror', (e: L.LeafletEvent & { message: string }) => {
-      if (props.onLocationError) {
-        props.onLocationError(new Error(e.message))
-      }
-    })
-
-    if (props.onMapReady) {
-      props.onMapReady(map)
-    }
-
-    return () => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove()
-        mapInstanceRef.current = null
-      }
-    }
-  }, [])
-
-  // Sync props updates
-  useEffect(() => {
-    if (!mapInstanceRef.current) return
-
-    clearMarkers()
-    if (props.markers) {
-      props.markers.forEach(addMarker)
-    }
-  }, [props.markers])
-
-  useEffect(() => {
-    if (!mapInstanceRef.current) return
-
-    clearPolylines()
-    if (props.polyline) {
-      props.polyline.forEach(addPolyline)
-    }
-  }, [props.polyline])
-
-  useEffect(() => {
-    if (!mapInstanceRef.current) return
-
-    if (props.circle) {
-      addCircle(props.circle)
-    } else if (accuracyCircleRef.current) {
-      mapInstanceRef.current.removeLayer(accuracyCircleRef.current)
-      accuracyCircleRef.current = null
-    }
-  }, [props.circle])
+    return null
+  }
 
   return (
-    <div
-      ref={mapContainerRef}
-      className={`leaflet-map ${props.className || ''}`}
-      style={containerStyle}
-    />
+    <div className={clsx('leaflet-map', className)} style={{ height, width, minHeight: '300px', zIndex: 1 }}>
+      <MapContainer center={center} zoom={zoom} scrollWheelZoom zoomControl={false} style={{ height: '100%', width: '100%' }}>
+        <TileLayer attribution="&copy; OpenStreetMap" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" maxZoom={19} />
+        <ClickHandler />
+        <MapController
+          center={center}
+          markers={markers}
+          polylines={polyline}
+          autoFit={autoFit}
+          fitPadding={fitPadding}
+          onMapReady={handleMapReady}
+          showZoomControl={showZoomControl}
+          zoomControlPosition={zoomControlPosition}
+        />
+        {markers.map((marker) =>
+          marker.animated ? (
+            <AnimatedMarker key={marker.id} position={marker.position} icon={marker.icon as L.DivIcon} popup={marker.popup} />
+          ) : marker.draggable || draggableMarker ? (
+            <DraggableMarker key={marker.id} marker={marker} draggableMarker={draggableMarker} onMarkerDrag={onMarkerDrag} />
+          ) : (
+            <Marker key={marker.id} position={marker.position} icon={marker.icon}>
+              {marker.popup ? <Popup>{marker.popup}</Popup> : null}
+            </Marker>
+          )
+        )}
+        {polyline.map((poly, i) => (
+          <Polyline
+            key={i}
+            positions={poly.points}
+            color={poly.color || '#39ff6a'}
+            weight={poly.weight || 4}
+            opacity={0.85}
+            dashArray={poly.dashed ? '10, 10' : undefined}
+          />
+        ))}
+        {circle && (
+          <Circle
+            center={circle.center}
+            radius={circle.radius}
+            color={circle.color || '#39ff6a'}
+            fillColor={circle.fillColor || '#39ff6a'}
+            fillOpacity={0.12}
+            weight={1}
+          />
+        )}
+        {showUserLocation && (
+          <LocationWatcher enabled onLocationFound={onLocationFound} onLocationError={onLocationError} />
+        )}
+      </MapContainer>
+    </div>
   )
 })
 

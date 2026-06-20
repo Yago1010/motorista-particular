@@ -29,7 +29,21 @@ class WebController extends \BaseController {
 
 	public function index()
 	{
-		return View::make('website.index');
+		return View::make('website.index')
+			->with('portal', chama_portal_urls())
+			->with('siteTitle', Config::get('app.website_title', 'Chama no 12'));
+	}
+
+	/** Redireciona rotas web antigas do passageiro para o PWA. */
+	public function legacyRiderPortal()
+	{
+		return Redirect::to(chama_portal_url('rider', chama_legacy_rider_path(Request::path())));
+	}
+
+	/** Redireciona rotas web antigas do motorista para o PWA. */
+	public function legacyDriverPortal()
+	{
+		return Redirect::to(chama_portal_url('driver', chama_legacy_driver_path(Request::path())));
 	}
 
 	public function termsncondition()

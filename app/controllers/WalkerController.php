@@ -1036,9 +1036,9 @@ class WalkerController extends BaseController
 									$request_data['owner']['address'] = $owner_data->address;
 									$request_data['owner']['latitude'] = $owner_data->latitude;
 									$request_data['owner']['longitude'] = $owner_data->longitude;
-									if ($request->d_latitude != NULL) {
-										$request_data['owner']['d_latitude'] = $request->d_latitude;
-										$request_data['owner']['d_longitude'] = $request->d_longitude;
+									if ($request->D_latitude != NULL) {
+										$request_data['owner']['d_latitude'] = $request->D_latitude;
+										$request_data['owner']['d_longitude'] = $request->D_longitude;
 									}
 									$request_data['owner']['rating'] = DB::table('review_dog')->where('owner_id', '=', $owner_data->id)->avg('rating') ?: 0;
 									$request_data['owner']['num_rating'] = DB::table('review_dog')->where('owner_id', '=', $owner_data->id)->count();

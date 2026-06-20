@@ -1,4 +1,5 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios'
+import { clearRiderSession, syncRiderApiToken } from '@/utils/authSession'
 
 const api = axios.create({
   baseURL: '/api',
@@ -12,6 +13,7 @@ const api = axios.create({
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = localStorage.getItem('rider_token')
+    syncRiderApiToken(token)
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -20,13 +22,18 @@ api.interceptors.request.use(
   (error: AxiosError) => Promise.reject(error)
 )
 
+let handling401 = false
+
 api.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('rider_token')
-      localStorage.removeItem('rider_user')
-      window.location.href = '/pwa-rider/login'
+    if (error.response?.status === 401 && !handling401) {
+      handling401 = true
+      clearRiderSession()
+      import('@/stores/auth').then(({ useAuthStore }) => {
+        useAuthStore.getState().forceLogout()
+        handling401 = false
+      })
     }
     return Promise.reject(error)
   }

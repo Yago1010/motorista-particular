@@ -1,0 +1,465 @@
+/* Taxímetro + Carteira estilo 99 — compartilhado motorista/passageiro */
+
+.taximeter-page {
+  padding: 0.75rem 1rem 1.5rem;
+  color: var(--chama-text);
+}
+
+.taximeter-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.taximeter-tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.65rem;
+  border-radius: 12px;
+  border: 1px solid rgba(57, 255, 106, 0.2);
+  background: rgba(15, 20, 18, 0.6);
+  color: var(--chama-muted);
+  font-weight: 700;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.taximeter-tab--active {
+  background: linear-gradient(180deg, var(--chama-neon), var(--chama-neon-dark));
+  color: #031105;
+  border-color: transparent;
+}
+
+.taximeter-hero {
+  padding: 1.25rem;
+  text-align: center;
+  margin-bottom: 0.75rem;
+}
+
+.taximeter-hero-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.taximeter-gps,
+.taximeter-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+}
+
+.taximeter-gps--ok { background: rgba(57, 255, 106, 0.15); color: var(--chama-neon); }
+.taximeter-gps--error { background: rgba(255, 80, 80, 0.15); color: #ff6b6b; }
+.taximeter-gps--idle { background: rgba(255, 255, 255, 0.08); color: var(--chama-muted); }
+
+.taximeter-status--running { background: rgba(57, 255, 106, 0.2); color: var(--chama-neon); }
+.taximeter-status--paused { background: rgba(255, 193, 7, 0.2); color: #ffc107; }
+.taximeter-status--finished { background: rgba(100, 149, 237, 0.2); color: #8ab4ff; }
+.taximeter-status--stopped { background: rgba(255, 255, 255, 0.08); color: var(--chama-muted); }
+
+.taximeter-label {
+  margin: 0;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--chama-muted);
+}
+
+.taximeter-fare {
+  margin: 0.25rem 0;
+  font-size: 2.75rem;
+  font-weight: 900;
+  color: var(--chama-neon);
+  line-height: 1.1;
+}
+
+.taximeter-fare--sm { font-size: 2rem; }
+
+.taximeter-clock {
+  margin: 0.5rem 0 0.25rem;
+  font-family: ui-monospace, monospace;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.taximeter-meta {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--chama-muted);
+}
+
+.taximeter-section {
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.taximeter-section-title {
+  margin: 0 0 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--chama-muted);
+}
+
+.taximeter-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.taximeter-cat {
+  flex: 1;
+  min-width: 90px;
+  padding: 0.55rem 0.5rem;
+  border-radius: 10px;
+  border: 1px solid rgba(57, 255, 106, 0.25);
+  background: #0f1412;
+  color: var(--chama-text);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.taximeter-cat--active {
+  background: rgba(57, 255, 106, 0.15);
+  border-color: var(--chama-neon);
+  color: var(--chama-neon);
+}
+
+.taximeter-cat:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.taximeter-tariffs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+
+.taximeter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  color: var(--chama-muted);
+}
+
+.taximeter-field .chama-input {
+  width: 100%;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.taximeter-voice {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.85rem 1rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.taximeter-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
+}
+
+.taximeter-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 52px;
+  border: none;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.taximeter-actions .taximeter-btn:only-child { grid-column: 1 / -1; }
+
+.taximeter-btn--warn { background: #ffc107; color: #1a1200; }
+.taximeter-btn--danger { background: #e53935; color: #fff; }
+
+.taximeter-report-summary {
+  padding: 1.25rem;
+  text-align: center;
+  margin-bottom: 0.75rem;
+}
+
+.taximeter-trip-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.taximeter-trip-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+}
+
+.taximeter-trip-cat {
+  margin: 0 0 0.15rem;
+  font-weight: 800;
+  font-size: 0.95rem;
+}
+
+.taximeter-trip-fare {
+  margin: 0;
+  font-weight: 900;
+  color: var(--chama-neon);
+  white-space: nowrap;
+}
+
+.taximeter-empty {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--chama-muted);
+}
+
+.taximeter-empty-icon {
+  margin: 0 auto 0.75rem;
+  opacity: 0.5;
+}
+
+.taximeter-clear {
+  width: 100%;
+  margin-top: 0.75rem;
+}
+
+.wallet-99 {
+  padding: 1rem;
+  padding-bottom: 2rem;
+}
+
+.wallet-99-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  padding: 1.5rem 1.25rem;
+  margin-bottom: 1rem;
+  background: linear-gradient(145deg, #0d2818 0%, #145c32 45%, #39ff6a 180%);
+  border: 1px solid rgba(57, 255, 106, 0.35);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+}
+
+.wallet-99-hero-label {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.wallet-99-hero-balance {
+  margin: 0.35rem 0 1rem;
+  font-size: 2.25rem;
+  font-weight: 900;
+  color: #fff;
+  line-height: 1.1;
+}
+
+.wallet-99-hero-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.wallet-99-hero-actions .chama-btn-primary,
+.wallet-99-hero-actions .chama-btn-outline {
+  flex: 1;
+  min-width: 120px;
+  font-size: 0.85rem;
+  padding: 0.65rem 0.75rem;
+}
+
+.wallet-99-hero-actions .chama-btn-outline {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.45);
+}
+
+.wallet-99-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
+  margin-bottom: 1rem;
+}
+
+.wallet-99-stat {
+  padding: 0.85rem;
+  text-align: center;
+}
+
+.wallet-99-stat-value {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--chama-neon);
+}
+
+.wallet-99-stat-label {
+  margin: 0.2rem 0 0;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--chama-muted);
+}
+
+.wallet-99-filters {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.wallet-99-filter {
+  flex: 1;
+  padding: 0.45rem;
+  border-radius: 999px;
+  border: 1px solid rgba(57, 255, 106, 0.2);
+  background: transparent;
+  color: var(--chama-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.wallet-99-filter--active {
+  background: rgba(57, 255, 106, 0.15);
+  color: var(--chama-neon);
+  border-color: var(--chama-neon);
+}
+
+.wallet-99-tx {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.wallet-99-tx-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.wallet-99-tx-icon--credit {
+  background: rgba(57, 255, 106, 0.15);
+  color: var(--chama-neon);
+}
+
+.wallet-99-tx-icon--debit {
+  background: rgba(255, 80, 80, 0.12);
+  color: #ff6b6b;
+}
+
+.wallet-99-tx-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.wallet-99-tx-title {
+  margin: 0;
+  font-weight: 700;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wallet-99-tx-date {
+  margin: 0.15rem 0 0;
+  font-size: 0.72rem;
+  color: var(--chama-muted);
+}
+
+.wallet-99-tx-amount {
+  font-weight: 800;
+  font-size: 0.95rem;
+  white-space: nowrap;
+}
+
+.wallet-99-tx-amount--credit { color: var(--chama-neon); }
+.wallet-99-tx-amount--debit { color: #ff6b6b; }
+
+.wallet-99-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.wallet-99-modal {
+  width: min(100%, 420px);
+  border-radius: 20px 20px 12px 12px;
+  padding: 1.25rem;
+  background: #141a17;
+  border: 1px solid rgba(57, 255, 106, 0.25);
+}
+
+.wallet-99-modal h2 {
+  margin: 0 0 1rem;
+  font-size: 1.1rem;
+  color: var(--chama-text);
+}
+
+.wallet-99-quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.75rem 0;
+}
+
+.wallet-99-quick button {
+  flex: 1;
+  min-width: 64px;
+  padding: 0.45rem;
+  border-radius: 8px;
+  border: 1px solid rgba(57, 255, 106, 0.25);
+  background: #0f1412;
+  color: var(--chama-text);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.wallet-99-modal-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.wallet-99-modal-actions button {
+  flex: 1;
+}

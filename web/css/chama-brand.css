@@ -142,3 +142,296 @@ img.driver-landing-brand-logo {
   max-width: min(88vw, 260px);
   object-fit: contain;
 }
+
+/* Painel motorista — /provider/trips */
+.chama-provider-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 16px 18px;
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid rgba(22, 150, 72, 0.15);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
+}
+
+.chama-provider-toolbar-left,
+.chama-provider-toolbar-right {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.chama-online-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.chama-online-pill.is-online {
+  background: rgba(57, 255, 106, 0.15);
+  color: #148040;
+}
+
+.chama-online-pill.is-offline {
+  background: rgba(239, 68, 68, 0.12);
+  color: #b91c1c;
+}
+
+.chama-online-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.chama-online-pill.is-online .chama-online-dot {
+  box-shadow: 0 0 8px rgba(57, 255, 106, 0.8);
+}
+
+.chama-btn-pwa {
+  border-color: rgba(57, 255, 106, 0.35) !important;
+  font-weight: 600;
+}
+
+.chama-provider-banners {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.chama-provider-banner {
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #148040, #39ff6a);
+  color: #031105;
+}
+
+.chama-provider-banner span {
+  display: block;
+  margin-top: 4px;
+  opacity: 0.9;
+}
+
+.chama-provider-banner a {
+  display: inline-block;
+  margin-top: 8px;
+  color: #031105;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.chama-panel {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  padding: 18px;
+  margin-bottom: 18px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+}
+
+.chama-panel--highlight {
+  border-color: rgba(57, 255, 106, 0.35);
+  background: linear-gradient(180deg, rgba(57, 255, 106, 0.08), #fff);
+}
+
+.chama-panel-head h4 {
+  margin: 0 0 4px;
+  font-weight: 800;
+  color: #111827;
+}
+
+.chama-panel-head p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.chama-panel-head--row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.chama-stat-row {
+  margin-bottom: 8px;
+}
+
+.chama-stat-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 14px;
+  border: 1px solid rgba(22, 150, 72, 0.12);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+}
+
+.chama-stat-label {
+  display: block;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6b7280;
+  margin-bottom: 6px;
+  font-weight: 700;
+}
+
+.chama-stat-card strong {
+  font-size: 1.35rem;
+  color: #111827;
+}
+
+.chama-ride-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 14px;
+}
+
+.chama-ride-card--pending {
+  border-color: rgba(57, 255, 106, 0.45);
+  box-shadow: 0 6px 20px rgba(57, 255, 106, 0.12);
+}
+
+.chama-ride-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.chama-ride-passenger {
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.chama-ride-address {
+  color: #4b5563;
+  font-size: 0.9rem;
+}
+
+.chama-ride-price {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #148040;
+  margin: 10px 0;
+}
+
+.chama-ride-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chama-wa-btn {
+  background: #25d366 !important;
+  border-color: #25d366 !important;
+  color: #fff !important;
+}
+
+.chama-wa-btn:hover {
+  background: #1da851 !important;
+  color: #fff !important;
+}
+
+.chama-filter-form .form-group {
+  margin-right: 12px;
+  margin-bottom: 8px;
+}
+
+.chama-table thead th {
+  background: rgba(57, 255, 106, 0.1);
+  font-weight: 700;
+  border-bottom: none !important;
+}
+
+.chama-table tbody tr.trip-basic {
+  cursor: pointer;
+}
+
+.chama-table tbody tr.trip-basic:hover {
+  background: rgba(57, 255, 106, 0.06);
+}
+
+.chama-table-actions {
+  white-space: nowrap;
+}
+
+.chama-empty {
+  padding: 28px !important;
+  color: #6b7280;
+}
+
+.chama-trip-detail {
+  padding: 12px 0;
+}
+
+.chama-trip-map-img {
+  border-radius: 10px;
+  max-width: 100%;
+}
+
+.chama-trip-price {
+  margin-top: 0;
+  color: #148040;
+  font-weight: 900;
+}
+
+.chama-trip-stop {
+  display: flex;
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.chama-trip-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-top: 4px;
+  flex-shrink: 0;
+}
+
+.chama-trip-dot--origin {
+  background: #39ff6a;
+}
+
+.chama-trip-dot--dest {
+  background: #ef4444;
+}
+
+.chama-trip-passenger {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.chama-fare-breakdown h5 {
+  font-weight: 800;
+  margin-bottom: 10px;
+}
+
+.chama-fare-divider td {
+  border-top: 1px solid #e5e7eb;
+  padding-top: 8px;
+}
+
+body.chama-dash .site-footer {
+  background: #101614;
+  color: #8fa39a;
+  border-top: 1px solid rgba(57, 255, 106, 0.15);
+}
+
+body.chama-dash .site-footer .text-center {
+  color: #8fa39a;
+}

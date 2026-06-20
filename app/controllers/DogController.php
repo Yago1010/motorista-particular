@@ -1386,11 +1386,12 @@ class DogController extends BaseController
 			if ($owner_data = $this->getOwnerData($owner_id, $token, $is_admin)) {
 				// check for token validity
 				if (is_token_active($owner_data->token_expiry) || $is_admin) {
-					// Do necessary operations
+					chama_cancel_stale_unaccepted_rides($owner_data->id);
+
 					$request = DB::table('request')->where('owner_id', $owner_data->id)
 									->where('is_completed', 0)
 									->where('is_cancelled', 0)
-									->where('current_walker', '!=', 0)
+									->where('confirmed_walker', '>', 0)
 									->first();
 				if($request){
 					goto DontcreateReq;
@@ -1432,20 +1433,23 @@ class DogController extends BaseController
 							Log::info('typestring = ' . print_r($typestring, true));
 
 						} else {
-							$driver = Keywords::where('id', 1)->first();
-							send_notifications($owner_id, "owner", 'No ' . $driver->keyword . ' Found', 'No ' . $driver->keyword . ' found matching the service type.');
-
-							$response_array = array('success' => false, 'error' => 'No ' . $driver->keyword . ' found matching the service type.', 'error_code' => 416);
-							$response_code = 200;
-							return Response::json($response_array, $response_code);
-
+							$types = array();
+							$typestring = '';
 						}
+
+						if ($typestring === '') {
+							$settings = Settings::where('key', 'default_search_radius')->first();
+							$distance = $settings->value;
+							$query = "SELECT walker.*, 1.609344 * 3956 * acos( cos( radians('$latitude') ) * cos( radians(latitude) ) * cos( radians(longitude) - radians('$longitude') ) + sin( radians('$latitude') ) * sin( radians(latitude) ) ) as distance from walker where is_available = 1 and is_active = 1 and (1.609344 * 3956 * acos( cos( radians('$latitude') ) * cos( radians(latitude) ) * cos( radians(longitude) - radians('$longitude') ) + sin( radians('$latitude') ) * sin( radians(latitude) ) ) ) <= $distance and walker.deleted_at IS NULL order by distance";
+							$walkers = DB::select(DB::raw($query));
+						} else {
 
 						$settings = Settings::where('key', 'default_search_radius')->first();
 						$distance = $settings->value;
-						$query = "SELECT walker.*, 1.609344 * 3956 * acos( cos( radians('$latitude') ) * cos( radians(latitude) ) * cos( radians(longitude) - radians('$longitude') ) + sin( radians('$latitude') ) * sin( radians(latitude) ) ) as distance from walker where is_available = 1 and is_active = 1 and is_approved = 1 and (1.609344 * 3956 * acos( cos( radians('$latitude') ) * cos( radians(latitude) ) * cos( radians(longitude) - radians('$longitude') ) + sin( radians('$latitude') ) * sin( radians(latitude) ) ) ) <= $distance and walker.deleted_at IS NULL and walker.id IN($typestring) order by distance";
+						$query = "SELECT walker.*, 1.609344 * 3956 * acos( cos( radians('$latitude') ) * cos( radians(latitude) ) * cos( radians(longitude) - radians('$longitude') ) + sin( radians('$latitude') ) * sin( radians(latitude) ) ) as distance from walker where is_available = 1 and is_active = 1 and (1.609344 * 3956 * acos( cos( radians('$latitude') ) * cos( radians(latitude) ) * cos( radians(longitude) - radians('$longitude') ) + sin( radians('$latitude') ) * sin( radians(latitude) ) ) ) <= $distance and walker.deleted_at IS NULL and walker.id IN($typestring) order by distance";
 
 						$walkers = DB::select(DB::raw($query));
+						}
 						$walker_list = array();
 
 						$owner = Owner::find($owner_id);
@@ -1530,7 +1534,7 @@ class DogController extends BaseController
 						Log::info('in');
 						$settings = Settings::where('key', 'default_search_radius')->first();
 						$distance = $settings->value;
-						$query = "SELECT walker.id, 1.609344 * 3956 * acos( cos( radians('$latitude') ) * cos( radians(latitude) ) * cos( radians(longitude) - radians('$longitude') ) + sin( radians('$latitude') ) * sin( radians(latitude) ) ) as distance from walker where is_available = 1 and is_active = 1 and is_approved = 1 and (1.609344 * 3956 * acos( cos( radians('$latitude') ) * cos( radians(latitude) ) * cos( radians(longitude) - radians('$longitude') ) + sin( radians('$latitude') ) * sin( radians(latitude) ) ) ) <= $distance order by distance";
+						$query = "SELECT walker.id, 1.609344 * 3956 * acos( cos( radians('$latitude') ) * cos( radians(latitude) ) * cos( radians(longitude) - radians('$longitude') ) + sin( radians('$latitude') ) * sin( radians(latitude) ) ) as distance from walker where is_available = 1 and is_active = 1 and (1.609344 * 3956 * acos( cos( radians('$latitude') ) * cos( radians(latitude) ) * cos( radians(longitude) - radians('$longitude') ) + sin( radians('$latitude') ) * sin( radians(latitude) ) ) ) <= $distance order by distance";
 						$walkers = DB::select(DB::raw($query));
 						$walker_list = array();
 
@@ -1589,57 +1593,42 @@ class DogController extends BaseController
 						$request_meta->save();
 					}
 					$req = Requests::find($request->id);
-					$req->current_walker = $first_walker_id;
+					$req->current_walker = 0;
 					$req->save();
 
 					$settings = Settings::where('key', 'provider_timeout')->first();
 					$time_left = $settings->value;
 
-					// Send Notification
-					$walker = Walker::find($first_walker_id);
-					if ($walker) {
+					$owner = Owner::find($owner_id);
+					$request_data = array();
+					$request_data['owner'] = array();
+					$request_data['owner']['name'] = $owner->first_name . " " . $owner->last_name;
+					$request_data['owner']['picture'] = $owner->picture;
+					$request_data['owner']['phone'] = $owner->phone;
+					$request_data['owner']['address'] = $owner->address;
+					$request_data['owner']['latitude'] = $owner->latitude;
+					$request_data['owner']['longitude'] = $owner->longitude;
+					if ($d_latitude != NULL) {
+						$request_data['owner']['d_latitude'] = $d_latitude;
+						$request_data['owner']['d_longitude'] = $d_longitude;
+					}
+					$request_data['owner']['rating'] = DB::table('review_dog')->where('owner_id', '=', $owner->id)->avg('rating') ?: 0;
+					$request_data['owner']['num_rating'] = DB::table('review_dog')->where('owner_id', '=', $owner->id)->count();
+
+					foreach ($walkers as $notifyWalker) {
 						$msg_array = array();
 						$msg_array['unique_id'] = 1;
 						$msg_array['request_id'] = $request->id;
 						$msg_array['time_left_to_respond'] = $time_left;
-
 						if (Input::has('payment_mode')) {
 							$msg_array['payment_mode'] = Input::get('payment_mode');
 						}
-
-						$owner = Owner::find($owner_id);
-						$request_data = array();
-						$request_data['owner'] = array();
-						$request_data['owner']['name'] = $owner->first_name . " " . $owner->last_name;
-						$request_data['owner']['picture'] = $owner->picture;
-						$request_data['owner']['phone'] = $owner->phone;
-						$request_data['owner']['address'] = $owner->address;
-						$request_data['owner']['latitude'] = $owner->latitude;
-						$request_data['owner']['longitude'] = $owner->longitude;
-						if ($d_latitude != NULL) {
-							$request_data['owner']['d_latitude'] = $d_latitude;
-							$request_data['owner']['d_longitude'] = $d_longitude;
-						}
-						$request_data['owner']['rating'] = DB::table('review_dog')->where('owner_id', '=', $owner->id)->avg('rating') ?: 0;
-						$request_data['owner']['num_rating'] = DB::table('review_dog')->where('owner_id', '=', $owner->id)->count();
 						$msg_array['request_data'] = $request_data;
+						send_notifications($notifyWalker->id, "walker", "New Request", $msg_array);
+					}
 
-						$title = "New Request";
-						$message = $msg_array;
-						Log::info('response = ' . print_r($message, true));
-						Log::info('first_walker_id = ' . print_r($first_walker_id, true));
-						Log::info('New request = ' . print_r($message, true));
-						/* don't do json_encode in above line because if */
-						send_notifications($first_walker_id, "walker", $title, $message);
-					} else {
-						Log::info('No provider found in your area');
-
-						$driver = Keywords::where('id', 1)->first();
-						send_notifications($owner_id, "owner", 'No ' . $driver->keyword . ' Found', 'No ' . $driver->keyword . ' found for the selected service in your area currently');
-
-						$response_array = array('success' => false, 'error' => 'No ' . $driver->keyword . ' found for the selected service in your area currently', 'error_code' => 415);
-						$response_code = 200;
-						return Response::json($response_array, $response_code);
+					if (count($walkers) == 0) {
+						Log::info('No provider found — corrida criada; broadcast via API');
 					}
 					// Send SMS 
 					$settings = Settings::where('key', 'sms_request_created')->first();
@@ -1683,7 +1672,19 @@ class DogController extends BaseController
 		return $response;
 
 		DontcreateReq:
-		Log::info('Request not created ');
+		$existing = DB::table('request')->where('owner_id', $owner_data->id)
+			->where('is_completed', 0)
+			->where('is_cancelled', 0)
+			->where('confirmed_walker', '>', 0)
+			->orderBy('id', 'desc')
+			->first();
+		if ($existing) {
+			$response_array = array('success' => true, 'request_id' => $existing->id);
+			return Response::json($response_array, 200);
+		}
+		Log::info('Request not created — corrida em andamento bloqueada');
+		$response_array = array('success' => false, 'error' => 'Você já possui uma corrida em andamento', 'error_code' => 418);
+		return Response::json($response_array, 200);
 	}
 
 	//create crequest with fare
@@ -2616,7 +2617,23 @@ class DogController extends BaseController
 			if ($owner_data = $this->getOwnerData($owner_id, $token, $is_admin)) {
 				// check for token validity
 				if (is_token_active($owner_data->token_expiry) || $is_admin) {
-					$request = Requests::where('status', '=', 1)->where('is_completed', '=', 0)->where('is_cancelled', '=', 0)->where('owner_id', '=', $owner_id)->where('current_walker', '!=', 0)->orderBy('created_at', 'desc')->first();
+					chama_cancel_stale_unaccepted_rides($owner_id);
+					$timeout = chama_provider_timeout_seconds();
+					$cutoff = date('Y-m-d H:i:s', time() - $timeout);
+
+					$request = Requests::where('is_completed', '=', 0)
+						->where('is_cancelled', '=', 0)
+						->where('owner_id', '=', $owner_id)
+						->where(function ($q) use ($cutoff) {
+							$q->where('confirmed_walker', '>', 0)
+								->orWhere(function ($q2) use ($cutoff) {
+									$q2->where('confirmed_walker', '=', 0)
+										->where('status', '=', 0)
+										->where('updated_at', '>=', $cutoff);
+								});
+						})
+						->orderBy('created_at', 'desc')
+						->first();
 					if ($request) {
 						$request_id = $request->id;
 					} else {

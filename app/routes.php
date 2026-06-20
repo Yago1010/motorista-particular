@@ -230,6 +230,7 @@ Route::get('/admin/addreq/{id}', array('as' => 'AdminAddRequest', 'uses' => 'Adm
 Route::post('/admin/transfer_amount', array('as' => 'AdminProviderPay', 'uses' => 'AdminController@transfer_amount'));
 
 Route::get('/admin/map_view', array('as' => 'AdminMapview', 'uses' => 'AdminController@map_view'));
+Route::get('/admin/map_data', array('as' => 'AdminMapData', 'uses' => 'AdminController@map_data'));
 
 Route::get('/admin/providers', array('as' => 'AdminProviders', 'uses' =>'AdminController@walkers'));
 
@@ -330,6 +331,23 @@ Route::post('/admin/request/pay_provider', array('as' => 'AdminRequestPay', 'use
 
 Route::get('/admin/settings', array('as' => 'AdminSettings', 'uses' => 'AdminController@get_settings'));
 
+Route::get('/admin/pricing', array('as' => 'AdminPricing', 'uses' => 'AdminController@pricing'));
+Route::post('/admin/pricing', array('as' => 'AdminPricingSave', 'uses' => 'AdminController@save_pricing'));
+
+// Central Chama — cidades, atrações, anúncios
+Route::get('/admin/hub', array('as' => 'AdminChamaHub', 'uses' => 'AdminChamaController@hub'));
+Route::get('/admin/usuarios', array('as' => 'AdminChamaUsers', 'uses' => 'AdminChamaController@users'));
+Route::get('/admin/cidades', array('as' => 'AdminChamaCities', 'uses' => 'AdminChamaController@cities'));
+Route::post('/admin/cidades', array('as' => 'AdminChamaCitiesSave', 'uses' => 'AdminChamaController@saveCity'));
+Route::get('/admin/cidades/delete/{id}', array('as' => 'AdminChamaCitiesDelete', 'uses' => 'AdminChamaController@deleteCity'));
+Route::get('/admin/atracoes', array('as' => 'AdminChamaAttractions', 'uses' => 'AdminChamaController@attractions'));
+Route::post('/admin/atracoes', array('as' => 'AdminChamaAttractionsSave', 'uses' => 'AdminChamaController@saveAttraction'));
+Route::get('/admin/atracoes/delete/{id}', array('as' => 'AdminChamaAttractionsDelete', 'uses' => 'AdminChamaController@deleteAttraction'));
+Route::get('/admin/anuncios', array('as' => 'AdminChamaBanners', 'uses' => 'AdminChamaController@banners'));
+Route::post('/admin/anuncios', array('as' => 'AdminChamaBannersSave', 'uses' => 'AdminChamaController@saveBanner'));
+Route::get('/admin/anuncios/delete/{id}', array('as' => 'AdminChamaBannersDelete', 'uses' => 'AdminChamaController@deleteBanner'));
+Route::get('/admin/anuncios/toggle/{id}', array('as' => 'AdminChamaBannersToggle', 'uses' => 'AdminChamaController@toggleBanner'));
+
 Route::get('/admin/settings/installation', array('as' => 'AdminSettingInstallation', 'uses' => 'AdminController@installation_settings'));
 
 Route::post('/admin/install', array('as' => 'AdminInstallFinish', 'uses' => 'AdminController@finish_install'));
@@ -419,9 +437,16 @@ Route::get('/admin/provider/current', array('as' => 'AdminProviderCurrent', 'use
 
 Route::get('/', 'WebController@index');
 
-Route::get('/user/signin', array('as' => '/user/signin', 'uses' => 'WebUserController@userLogin'));
-
-Route::get('/user/signup', array('as' => '/user/signup', 'uses' => 'WebUserController@userRegister'));
+Route::get('/user/signin', 'WebController@legacyRiderPortal');
+Route::get('/user/signup', 'WebController@legacyRiderPortal');
+Route::get('/user/trips', 'WebController@legacyRiderPortal');
+Route::get('/user/request-trip', 'WebController@legacyRiderPortal');
+Route::get('/user/profile', 'WebController@legacyRiderPortal');
+Route::get('/user/payments', 'WebController@legacyRiderPortal');
+Route::get('/user/request-fare', 'WebController@legacyRiderPortal');
+Route::get('/user/requesteta', 'WebController@legacyRiderPortal');
+Route::get('/user/trip/{id}', 'WebController@legacyRiderPortal');
+Route::get('/user/skipReview/{id}', 'WebController@legacyRiderPortal');
 
 Route::post('/user/save', array('as' => '/user/save', 'uses'=>'WebUserController@userSave'));
 
@@ -430,8 +455,6 @@ Route::post('/user/forgot-password', array('as' => '/user/forgot-password', 'use
 Route::get('/user/logout', array('as'=> '/user/logout', 'uses'=>'WebUserController@userLogout'));
 
 Route::post('/user/verify', array('as'=> '/user/verify', 'uses'=>'WebUserController@userVerify'));
-
-Route::get('/user/trips', array('as'=> '/user/trips', 'uses'=>'WebUserController@userTrips'));
 
 Route::get('/user/trip/status/{id}', array('as'=> '/user/trip/status', 'uses'=>'WebUserController@userTripStatus'));
 
@@ -450,25 +473,11 @@ Route::get('userpaypalstatus', array('as' => 'userpaypalstatus', 'uses' => 'WebU
 Route::get('userpaypalipn', array('as' => 'userpaypalipn', 'uses' => 'WebUserController@userpaypalipn'));
 
 
-Route::get('/user/request-trip', array('as'=> 'userrequestTrip', 'uses'=>'WebUserController@userRequestTrip'));
-
-Route::get('/user/skipReview/{id}', array('as'=> 'userSkipReview', 'uses'=>'WebUserController@userSkipReview'));
-
-
 Route::post('/user/eta', array('as'=> 'etaweb', 'uses'=>'WebUserController@send_eta_web'));
-
-Route::get('/user/request-fare', array('as'=> 'userrequestFare', 'uses'=>'WebUserController@request_fare'));
-
-Route::get('/user/requesteta', array('as'=> 'userrequestETA', 'uses'=>'WebUserController@request_eta'));
 
 Route::post('/user/request-trip', array('as'=> 'userrequesttrips', 'uses'=>'WebUserController@saveUserRequestTrip'));
 
 Route::post('/user/post-review', array('as'=> '/user/post-review', 'uses'=>'WebUserController@saveUserReview'));
-
-Route::get('/user/profile', array('as'=> '/user/profile', 'uses'=>'WebUserController@userProfile'));
-
-Route::get('/user/payments', array('as'=> 'userPayment', 'uses'=>'WebUserController@userPayments'));
-
 
 Route::get('termsncondition', array('as'=> 'termsncondition', 'uses'=>'WebController@termsncondition'));
 
@@ -497,9 +506,6 @@ Route::post('/user/update_password', array('as'=> '/user/update_password', 'uses
 
 Route::post('/user/update_code', array('as'=> '/user/update_code', 'uses'=>'WebUserController@updateUserCode'));
 
-Route::get('/user/trip/{id}', array('as'=> '/user/trip', 'uses'=>'WebUserController@userTripDetail'));
-
-
 // Search Admin Panel
 Route::get('/admin/searchpv', array('as' => '/admin/searchpv', 'uses' => 'AdminController@searchpv'));
 Route::get('/admin/searchur', array('as' => '/admin/searchur', 'uses' => 'AdminController@searchur'));
@@ -511,12 +517,19 @@ Route::get('/admin/searchdoc', array('as' => '/admin/searchdoc', 'uses' => 'Admi
 Route::get('/admin/searchpromo', array('as' => '/admin/searchpromo', 'uses' => 'AdminController@searchpromo'));
 
 
-// Web Provider
+// Web Provider — telas legadas redirecionam para o PWA motorista
 
-Route::get('/provider/signin', array(
-		'as' => 'ProviderSignin',
-		'uses' => 'WebProviderController@providerLogin'
-	 ));
+Route::get('/provider/signin', 'WebController@legacyDriverPortal');
+Route::get('/provider/signup', 'WebController@legacyDriverPortal');
+Route::get('/provider/trips', 'WebController@legacyDriverPortal');
+Route::get('/provider/trip/{id}', 'WebController@legacyDriverPortal');
+Route::get('/provider/trip/changestate/{id}', 'WebController@legacyDriverPortal');
+Route::get('/provider/tripinprogress', 'WebController@legacyDriverPortal');
+Route::get('/provider/skipReview', 'WebController@legacyDriverPortal');
+Route::get('/provider/profile', 'WebController@legacyDriverPortal');
+Route::get('/provider/documents', 'WebController@legacyDriverPortal');
+Route::get('/provider/request', 'WebController@legacyDriverPortal');
+Route::get('/provider/availability', 'WebController@legacyDriverPortal');
 
 Route::get('/provider/activation/{act}', array(
 		'as' => '/provider/activation',
@@ -525,22 +538,11 @@ Route::get('/provider/activation/{act}', array(
 
 
 
-Route::get('/provider/signup', array(
-		'as' => 'ProviderSignup',
-		'uses' => 'WebProviderController@providerRegister'
-	 ));
-
-
 Route::post('/provider/save', array(
 		'as' => 'ProviderSave',
 		'uses' => 'WebProviderController@providerSave'
 	 ));
 
-
-Route::get('/provider/availability', array(
-		'as' => 'ProviderAvail',
-		'uses' => 'WebProviderController@provideravailability'
-	 ));
 
 Route::post('/provider/availabilitysubmit', array(
 		'as' => 'provideravailabilitySubmit',
@@ -566,36 +568,6 @@ Route::post('/provider/verify', array(
 
 
 
-Route::get('/provider/trips', array(
-		'as' => 'ProviderTrips',
-		'uses' => 'WebProviderController@providerTrips'
-	 ));
-
-
-Route::get('/provider/trip/{id}', array(
-		'as' => 'ProviderTripDetail',
-		'uses' => 'WebProviderController@providerTripDetail'
-	 ));
-
-
-Route::get('/provider/trip/changestate/{id}', array(
-		'as' => 'providerTripChangeState',
-		'uses' => 'WebProviderController@providerTripChangeState'
-	 ));
-
-
-Route::get('/provider/tripinprogress', array(
-		'as' => 'providerTripInProgress',
-		'uses' => 'WebProviderController@providerTripInProgress'));
-
-Route::get('/provider/skipReview', array(
-		'as' => 'providerSkipReview',
-		'uses' => 'WebProviderController@providerSkipReview'));
-
-Route::get('/provider/profile', array(
-		'as' => 'providerProfile',
-		'uses' => 'WebProviderController@providerProfile'));
-
 Route::post('/provider/update_profile', array(
 		'as' => 'updateProviderProfile',
 		'uses' =>'WebProviderController@updateProviderProfile'));
@@ -604,17 +576,9 @@ Route::post('/provider/update_password', array(
 		'as' => 'updateProviderPassword',
 		'uses' =>'WebProviderController@updateProviderPassword'));
 
-Route::get('/provider/documents', array(
-		'as' => 'providerDocuments',
-		'uses' =>'WebProviderController@providerDocuments'));
-
 Route::post('/provider/update_documents', array(
 		'as' => 'providerUpdateDocuments',
 		'uses' =>'WebProviderController@providerUpdateDocuments'));
-
-Route::get('/provider/request', array(
-		'as' => 'providerRequestPing',
-		'uses' =>'WebProviderController@providerRequestPing'));
 
 Route::post('user/request', array('as'=>'manualrequest','uses'=>'WebProviderController@create_manual_request'));
 
@@ -645,4 +609,86 @@ Route::get('/install/complete', 'InstallerController@finish_install');
 Route::post('user/fare', 'DogController@fare_calculator');
 
 Route::get('token_braintree', array('as' => 'token_braintree', 'uses' =>'ApplicationController@token_braintree'));
+
+// ---------------------------------------------------------------------------
+// PWA API (JSON + Bearer) — passageiro e motorista
+// ---------------------------------------------------------------------------
+
+Route::group(array('before' => 'cors'), function () {
+
+	Route::group(array('prefix' => 'api/rider'), function () {
+		Route::post('login', 'ApiRiderController@login');
+		Route::post('register', 'ApiRiderController@register');
+		Route::post('logout', 'ApiRiderController@logout');
+		Route::post('location', 'ApiRiderController@location');
+		Route::get('rides/active', 'ApiRiderController@activeRide');
+		Route::post('rides/request', 'ApiRiderController@requestRide');
+		Route::get('rides/history', 'ApiRiderController@rideHistory');
+		Route::get('rides/{id}', 'ApiRiderController@getRide');
+		Route::get('rides/{id}/location', 'ApiRiderController@getRideLocation');
+		Route::post('rides/{id}/cancel', 'ApiRiderController@cancelRide');
+		Route::post('rides/{id}/rate', 'ApiRiderController@rateDriver');
+		Route::post('rides/{id}/pay', 'ApiRiderController@payRide');
+		Route::get('rides/{id}/payment-pix', 'ApiRiderController@paymentPix');
+		Route::post('rides/{id}/confirm-cash-payment', 'ApiRiderController@confirmCashPayment');
+		Route::get('wallet', 'ApiRiderController@wallet');
+		Route::get('wallet/transactions', 'ApiRiderController@walletTransactions');
+		Route::post('wallet/add-funds', 'ApiRiderController@addFunds');
+	});
+
+	Route::post('api/rides/estimate', 'ApiRiderController@estimateFare');
+	Route::get('api/drivers/nearby', 'ApiRiderController@nearbyDrivers');
+
+	Route::get('api/app/banners', 'ApiContentController@banners');
+	Route::get('api/app/attractions', 'ApiContentController@attractions');
+	Route::get('api/app/cities', 'ApiContentController@cities');
+
+	Route::get('api/places/search', 'ApiPlacesController@search');
+	Route::get('api/places/reverse', 'ApiPlacesController@reverse');
+
+	Route::group(array('prefix' => 'api/driver'), function () {
+		Route::post('login', 'ApiDriverController@login');
+		Route::post('register', 'ApiDriverController@register');
+		Route::post('logout', 'ApiDriverController@logout');
+		Route::post('location', 'ApiDriverController@location');
+		Route::post('toggle-online', 'ApiDriverController@toggleOnline');
+		Route::get('rides/pending', 'ApiDriverController@pendingRides');
+		Route::get('rides/history', 'ApiDriverController@rideHistory');
+		Route::get('rides/{id}', 'ApiDriverController@getRide');
+		Route::post('rides/{id}/accept', 'ApiDriverController@acceptRide');
+		Route::post('rides/{id}/decline', 'ApiDriverController@declineRide');
+		Route::post('rides/{id}/arrive', 'ApiDriverController@arrivePickup');
+		Route::post('rides/{id}/start', 'ApiDriverController@startRide');
+		Route::post('rides/{id}/arrive-destination', 'ApiDriverController@arriveDestination');
+		Route::post('rides/{id}/complete', 'ApiDriverController@completeRide');
+		Route::post('rides/{id}/cancel', 'ApiDriverController@cancelRide');
+		Route::post('rides/{id}/rate-passenger', 'ApiDriverController@ratePassenger');
+		Route::get('wallet', 'ApiDriverController@wallet');
+		Route::post('wallet/withdraw', 'ApiDriverController@withdraw');
+		Route::get('earnings/summary', 'ApiDriverController@earningsSummary');
+		Route::get('earnings/details', 'ApiDriverController@earningsDetails');
+		Route::get('push/vapid-public-key', 'ApiDriverController@vapidPublicKey');
+		Route::post('push/subscribe', 'ApiDriverController@pushSubscribe');
+		Route::post('push/unsubscribe', 'ApiDriverController@pushUnsubscribe');
+	});
+});
+
+App::before(function () {
+	if (Request::isMethod('OPTIONS')) {
+		return Response::make('', 204, array(
+			'Access-Control-Allow-Origin' => '*',
+			'Access-Control-Allow-Methods' => 'GET, POST, PUT, DELETE, OPTIONS',
+			'Access-Control-Allow-Headers' => 'Content-Type, Authorization, Accept',
+		));
+	}
+});
+
+Route::filter('cors', function () {
+	if (Request::isMethod('OPTIONS')) {
+		return Response::make('', 204);
+	}
+	header('Access-Control-Allow-Origin: *');
+	header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+	header('Access-Control-Allow-Headers: Content-Type, Authorization, Accept');
+});
 

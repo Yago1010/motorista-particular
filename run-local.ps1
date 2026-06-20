@@ -39,6 +39,11 @@ if (-not $env:APP_URL) { $env:APP_URL = "http://localhost:8888" }
 if (-not $env:APP_DEBUG) { $env:APP_DEBUG = "true" }
 
 Write-Host "Uber1 em $env:APP_URL (Ctrl+C para parar)"
+Write-Host "Portal:  $env:APP_URL/"
+Write-Host "Passageiro: $env:APP_URL/pwa-rider/  (requer npm run build se dist nao existir)"
+Write-Host "Motorista:  $env:APP_URL/pwa-motoristas/"
+Write-Host "Admin:      $env:APP_URL/admin/login"
+Write-Host "Hot reload dev: npm run dev  -> :3000 passageiro, :3001 motorista"
 Write-Host "MySQL: ${env:DB_HOST}:${env:DB_PORT} / $env:DB_DATABASE / user=$env:DB_USERNAME"
 Write-Host "Erro 2002: inicia MySQL/MariaDB local (porta 3306) ou, com Docker: docker compose up -d db (porta 3307)."
 
@@ -73,6 +78,12 @@ if ($LASTEXITCODE -ne 0) {
 	Write-Host "Opções: MySQL local na 3306 + base uberx (.\setup-database.ps1) OU Docker: .\run-local-docker.ps1" -ForegroundColor Yellow
 	Write-Host "Se o MySQL acabou de arrancar, espera ~10s e volta a executar este script." -ForegroundColor Yellow
 	exit 1
+}
+
+Write-Host "Cron local: GET /server/schedulerequest a cada 30s (timeout/rotacao motorista)"
+$scheduleScript = Join-Path $PSScriptRoot "scripts\schedule-request-loop.ps1"
+if (Test-Path $scheduleScript) {
+    Start-Process powershell -ArgumentList "-NoProfile","-WindowStyle","Hidden","-File",$scheduleScript -WorkingDirectory $PSScriptRoot | Out-Null
 }
 
 php -d "auto_prepend_file=$prependPath" -S localhost:8888 router.php

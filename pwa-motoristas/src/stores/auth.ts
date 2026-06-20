@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import api from '@/services/api';
-import socketService from '@/services/socket';
+import { clearDriverSession, syncDriverApiToken } from '@/utils/authSession';
 
 export interface DriverUser {
   id: number;
@@ -18,23 +18,20 @@ interface AuthState {
   loading: boolean;
   loadingMessage: string;
   isOnline: boolean;
+  isPaused: boolean;
   isAuthenticated: boolean;
-  
+  authReady: boolean;
+
   initAuth: () => Promise<void>;
-  login: (cpf: string, password: string) => Promise<{ success: boolean; message?: string }>;
+  forceLogout: () => void;
+  login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
   register: (data: any) => Promise<{ success: boolean; message?: string }>;
   validateSelfie: (imageFile: File) => Promise<{ success: boolean; data?: any; message?: string }>;
   logout: () => Promise<void>;
   toggleOnline: (status: boolean) => Promise<{ success: boolean; message?: string }>;
+  togglePause: (paused: boolean) => Promise<{ success: boolean; message?: string }>;
   updateLocation: (lat: number, lng: number) => Promise<void>;
-  connectSocket: () => Promise<void>;
 }
-
-const handleRideRequest = (data: any) => console.log('New ride request:', data);
-const handleRideCancelled = (data: any) => console.log('Ride cancelled:', data);
-const handleRideAccepted = (data: any) => console.log('Ride accepted:', data);
-const handleNewMessage = (data: any) => console.log('New message:', data);
-const handleDriverStatus = (data: any) => console.log('Driver status:', data);
 
 export const useAuthStore = create<AuthState>()(
   persist(
@@ -44,7 +41,9 @@ export const useAuthStore = create<AuthState>()(
       loading: false,
       loadingMessage: '',
       isOnline: false,
+      isPaused: false,
       isAuthenticated: false,
+      authReady: false,
 
       initAuth: async () => {
         const savedToken = localStorage.getItem('driver_token');
@@ -53,21 +52,24 @@ export const useAuthStore = create<AuthState>()(
         if (savedToken && savedUser) {
           try {
             const userData = JSON.parse(savedUser);
+            syncDriverApiToken(savedToken);
             set({ token: savedToken, user: userData, isAuthenticated: true });
-            api.defaults.headers.common['Authorization'] = `Bearer ${savedToken}`;
-            await get().connectSocket();
           } catch (error) {
-            localStorage.removeItem('driver_token');
-            localStorage.removeItem('driver_user');
+            clearDriverSession();
             set({ token: null, user: null, isAuthenticated: false });
           }
         }
       },
 
-      login: async (cpf, password) => {
+      forceLogout: () => {
+        clearDriverSession();
+        set({ token: null, user: null, isAuthenticated: false, isOnline: false, loading: false });
+      },
+
+      login: async (email, password) => {
         set({ loading: true, loadingMessage: 'Entrando...' });
         try {
-          const response = await api.post('/api/driver/login', { cpf, password });
+          const response = await api.post('driver/login', { email, password });
           const { token: newToken, user: userData } = response.data;
 
           set({
@@ -78,12 +80,27 @@ export const useAuthStore = create<AuthState>()(
           });
           localStorage.setItem('driver_token', newToken);
           localStorage.setItem('driver_user', JSON.stringify(userData));
-          api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+          syncDriverApiToken(newToken);
 
-          await get().connectSocket();
+          try {
+            await api.post('driver/toggle-online', { is_online: true });
+          } catch {
+            /* backend pode falhar; HomeView tenta de novo */
+          }
+          set({ isOnline: true });
+
           return { success: true };
         } catch (error: any) {
           set({ loading: false });
+          const { isDemoDriverCredentials, buildDemoDriverSession } = await import('@/config/demoUsers');
+          if (isDemoDriverCredentials(email, password)) {
+            const session = buildDemoDriverSession();
+            set({ token: session.token, user: session.user, isAuthenticated: true });
+            localStorage.setItem('driver_token', session.token);
+            localStorage.setItem('driver_user', JSON.stringify(session.user));
+            syncDriverApiToken(session.token);
+            return { success: true };
+          }
           return { success: false, message: error.response?.data?.message || 'Erro ao entrar' };
         }
       },
@@ -91,7 +108,7 @@ export const useAuthStore = create<AuthState>()(
       register: async (data) => {
         set({ loading: true, loadingMessage: 'Cadastrando...' });
         try {
-          const response = await api.post('/api/driver/register', data);
+          const response = await api.post('driver/register', data);
           const { token: newToken, user: userData } = response.data;
 
           set({
@@ -102,9 +119,8 @@ export const useAuthStore = create<AuthState>()(
           });
           localStorage.setItem('driver_token', newToken);
           localStorage.setItem('driver_user', JSON.stringify(userData));
-          api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+          syncDriverApiToken(newToken);
 
-          await get().connectSocket();
           return { success: true };
         } catch (error: any) {
           set({ loading: false });
@@ -117,7 +133,7 @@ export const useAuthStore = create<AuthState>()(
           const formData = new FormData();
           formData.append('selfie', imageFile);
 
-          const response = await api.post('/api/driver/validate-selfie', formData, {
+          const response = await api.post('driver/validate-selfie', formData, {
             headers: { 'Content-Type': 'multipart/form-data' },
           });
           return { success: true, data: response.data };
@@ -129,10 +145,11 @@ export const useAuthStore = create<AuthState>()(
       logout: async () => {
         set({ loading: true, loadingMessage: 'Saindo...' });
         try {
-          await api.post('/api/driver/logout');
+          await api.post('driver/logout');
         } catch (error) {
           console.error('Logout error:', error);
         } finally {
+          clearDriverSession();
           set({
             token: null,
             user: null,
@@ -140,44 +157,32 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: false,
             loading: false,
           });
-          localStorage.removeItem('driver_token');
-          localStorage.removeItem('driver_user');
-          delete api.defaults.headers.common['Authorization'];
-          socketService.disconnect();
-        }
-      },
-
-      connectSocket: async () => {
-        const { token } = get();
-        if (!token) return;
-
-        try {
-          await socketService.connect(token);
-          socketService.on('ride:request', handleRideRequest);
-          socketService.on('ride:cancelled', handleRideCancelled);
-          socketService.on('ride:accepted', handleRideAccepted);
-          socketService.on('message:new', handleNewMessage);
-          socketService.on('driver:status', handleDriverStatus);
-        } catch (error) {
-          console.error('Socket connection error:', error);
         }
       },
 
       toggleOnline: async (status) => {
         try {
-          await api.post('/api/driver/toggle-online', { is_online: status });
-          set({ isOnline: status });
-          socketService.emit('driver:status', { is_online: status });
-          return { success: true };
-        } catch (error: any) {
-          return { success: false, message: error.response?.data?.message || 'Erro ao alterar status' };
+          await api.post('driver/toggle-online', { is_online: status });
+        } catch {
+          // fallback offline
         }
+        set({ isOnline: status });
+        return { success: true };
+      },
+
+      togglePause: async (paused) => {
+        try {
+          await api.post('driver/availability/pause', { is_paused: paused });
+        } catch {
+          // fallback offline
+        }
+        set({ isPaused: paused });
+        return { success: true };
       },
 
       updateLocation: async (lat, lng) => {
         try {
-          await api.post('/api/driver/location', { latitude: lat, longitude: lng });
-          socketService.emit('driver:location', { latitude: lat, longitude: lng });
+          await api.post('driver/location', { latitude: lat, longitude: lng });
         } catch (error) {
           console.error('Update location error:', error);
         }
@@ -189,7 +194,16 @@ export const useAuthStore = create<AuthState>()(
         token: state.token,
         user: state.user,
         isOnline: state.isOnline,
+        isPaused: state.isPaused,
+        isAuthenticated: state.isAuthenticated,
       }),
+      onRehydrateStorage: () => (state) => {
+        if (state?.token) syncDriverApiToken(state.token);
+      },
     }
   )
 );
+
+useAuthStore.persist.onFinishHydration(() => {
+  useAuthStore.setState({ authReady: true });
+});

@@ -176,29 +176,34 @@ function get_destination_address(lati,longi){
                   <li class="mt">
                       <a href="{{ URL::Route('ProviderTrips') }}">
                           <i class="fa fa-car"></i>
-                          <span>My {{trans('customize.Trip')}}s</span>
+                          <span>Painel / Corridas</span>
                       </a>
                   </li>
 
                   <li class="" id="flow21">
-
                       <a href="{{ URL::Route('providerProfile') }}">
                           <i class="fa fa-user"></i>
-                          <span>{{ trans('ui.profile') }}</span>
+                          <span>Meu perfil</span>
                       </a>
                   </li>
                   <li class="">
                       <a href="{{ URL::Route('providerDocuments') }}">
                           <i class="fa fa-file"></i>
-                          <span>{{ trans('ui.documents') }}</span>
+                          <span>Documentos</span>
                       </a>
                   </li>
 
                   <li class="">
-                  
                       <a href="{{ URL::Route('providerTripInProgress') }}">
-                          <i class="fa fa-arrow-right"></i>
-                          <span>{{ trans('ui.ongoing_trips', array('tripPlural' => trans('customize.Trip').'s')) }}</span>
+                          <i class="fa fa-location-arrow"></i>
+                          <span>Corrida em andamento</span>
+                      </a>
+                  </li>
+
+                  <li class="">
+                      <a href="{{ url('/pwa-motoristas/') }}" target="_blank" rel="noopener">
+                          <i class="fa fa-mobile"></i>
+                          <span>App Motorista (PWA)</span>
                       </a>
                   </li>
 
@@ -249,8 +254,8 @@ function get_destination_address(lati,longi){
       <!--footer start-->
       <footer class="site-footer">
           <div class="text-center">
-              2014 - Alvarez.is
-              <a href="blank.html#" class="go-top">
+              {{ Config::get('app.website_title', 'Chama no 12') }} — Painel do motorista
+              <a href="#" class="go-top">
                   <i class="fa fa-angle-up"></i>
               </a>
           </div>
@@ -264,16 +269,16 @@ function get_destination_address(lati,longi){
     <div class="modal-content">
       <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
-        <h4 class="modal-title">New {{trans('customize.Trip')}} Request</h4>
+        <h4 class="modal-title">Nova corrida disponível</h4>
       </div>
       <div class="modal-body">
-        <p>You got a new {{trans('customize.Trip')}} request. Please respond quickly&hellip;</p>
+        <p>Você recebeu uma nova solicitação. Responda o quanto antes.</p>
         <div style="position:relative;float:left">
           <img id="owner-image" src="" class="img-circle" width="60px">
           </div>
           <div style="position:relative;float:left;left:20px;">
             <b id="owner-name"></b><br>
-            <i>Rating - </i><b id="owner-rating"> 3 </b><b>/ 5</b>
+            <i>Nota — </i><b id="owner-rating"> 3 </b><b>/ 5</b>
 
           </div>
         <div>
@@ -282,8 +287,8 @@ function get_destination_address(lati,longi){
         
       </div>
       <div class="modal-footer">
-        <a href="" id="accept-url"><button type="button" id="flow23" class="btn btn-success">Accept</button></a>
-        <a href="" id="decline-url"><button type="button" class="btn btn-danger">Reject</button></a>
+        <a href="" id="accept-url"><button type="button" id="flow23" class="btn btn-success">Aceitar</button></a>
+        <a href="" id="decline-url"><button type="button" class="btn btn-danger">Recusar</button></a>
       </div>
     </div><!-- /.modal-content -->
   </div><!-- /.modal-dialog -->

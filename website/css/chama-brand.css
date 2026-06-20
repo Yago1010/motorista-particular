@@ -151,3 +151,209 @@
 .chama-site .navbar-default .navbar-toggle .icon-bar {
   background-color: var(--chama-neon);
 }
+
+/* Portal home — página principal / */
+.chama-portal-home {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(57, 255, 106, 0.12), transparent),
+    var(--chama-bg);
+  color: var(--chama-text);
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+.chama-portal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  border-bottom: 1px solid rgba(57, 255, 106, 0.18);
+  background: rgba(12, 14, 13, 0.92);
+  backdrop-filter: blur(8px);
+}
+
+.chama-portal-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none !important;
+  color: var(--chama-text) !important;
+  font-weight: 800;
+  font-size: 1.05rem;
+}
+
+.chama-portal-brand img {
+  height: 44px;
+  width: auto;
+  border-radius: 10px;
+  box-shadow: 0 0 16px rgba(57, 255, 106, 0.25);
+}
+
+.chama-portal-nav a {
+  color: var(--chama-muted);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.chama-portal-nav a:hover {
+  color: var(--chama-neon);
+}
+
+.chama-portal-main {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 48px 20px 64px;
+}
+
+.chama-portal-hero {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.chama-portal-kicker {
+  margin: 0 0 10px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--chama-neon);
+}
+
+.chama-portal-hero h1 {
+  margin: 0 0 14px;
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.chama-portal-hero h1 span {
+  color: var(--chama-gold);
+}
+
+.chama-portal-lead {
+  margin: 0 auto;
+  max-width: 560px;
+  color: var(--chama-muted);
+  font-size: 1.05rem;
+  line-height: 1.55;
+}
+
+.chama-portal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 18px;
+}
+
+.chama-portal-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 22px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(160deg, #141916 0%, #101512 100%);
+  color: var(--chama-text);
+  text-decoration: none !important;
+  transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+
+.chama-portal-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(57, 255, 106, 0.35);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+}
+
+.chama-portal-card-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  background: rgba(57, 255, 106, 0.12);
+  color: var(--chama-neon);
+}
+
+.chama-portal-card--driver .chama-portal-card-icon {
+  background: rgba(232, 197, 71, 0.12);
+  color: var(--chama-gold);
+}
+
+.chama-portal-card--admin .chama-portal-card-icon {
+  background: rgba(59, 130, 246, 0.12);
+  color: #60a5fa;
+}
+
+.chama-portal-card h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.chama-portal-card p {
+  margin: 0;
+  color: var(--chama-muted);
+  font-size: 0.92rem;
+  line-height: 1.45;
+  flex: 1;
+}
+
+.chama-portal-card-cta {
+  margin-top: 6px;
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: var(--chama-neon);
+}
+
+.chama-portal-card--driver .chama-portal-card-cta { color: var(--chama-gold); }
+.chama-portal-card--admin .chama-portal-card-cta { color: #60a5fa; }
+
+.chama-portal-dev-hint {
+  margin-top: 4px;
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.35);
+  word-break: break-all;
+}
+
+.chama-portal-note {
+  margin-top: 28px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.chama-portal-note p {
+  margin: 0;
+  color: var(--chama-muted);
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.chama-portal-note code {
+  color: var(--chama-neon);
+  background: rgba(57, 255, 106, 0.08);
+  padding: 1px 6px;
+  border-radius: 6px;
+}
+
+.chama-portal-footer {
+  text-align: center;
+  padding: 24px 16px 32px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  color: var(--chama-muted);
+  font-size: 0.85rem;
+}
+
+.chama-portal-footer a {
+  color: var(--chama-neon);
+  text-decoration: none;
+}
+
+@media (max-width: 640px) {
+  .chama-portal-header { padding: 14px 16px; }
+  .chama-portal-main { padding-top: 32px; }
+}

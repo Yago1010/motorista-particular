@@ -1,0 +1,316 @@
+@import './chama-tokens.css';
+@import './pwa-chama.css';
+@import './wallet-taximeter.css';
+
+/* Chama no 12 — tema verde / preto / branco */
+
+body.chama-web.pwa-rider,
+body.chama-web.pwa-driver {
+  margin: 0;
+  min-height: 100vh;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  background: radial-gradient(ellipse 120% 80% at 50% 0%, #15221a 0%, var(--chama-bg) 55%);
+  color: var(--chama-text);
+}
+
+.chama-page {
+  background: transparent;
+  color: var(--chama-text);
+  min-height: 100vh;
+}
+
+.chama-card {
+  background: rgba(20, 26, 23, 0.92);
+  border: 1px solid rgba(57, 255, 106, 0.2);
+  border-radius: 12px;
+}
+
+.chama-btn-primary {
+  padding: 14px 16px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(180deg, var(--chama-neon), var(--chama-neon-dark));
+  color: #031105;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.chama-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.chama-btn-outline {
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(57, 255, 106, 0.35);
+  background: transparent;
+  color: var(--chama-text);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.chama-btn-icon {
+  display: flex;
+  height: 48px;
+  width: 48px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: linear-gradient(180deg, var(--chama-neon), var(--chama-neon-dark));
+  color: #031105;
+}
+
+.chama-input {
+  border-radius: 8px;
+  border: 1px solid rgba(57, 255, 106, 0.25);
+  background: #0f1412;
+  color: var(--chama-text);
+  padding: 10px 12px;
+}
+
+.chama-map-back {
+  position: absolute;
+  left: 16px;
+  top: 16px;
+  z-index: 1000;
+  display: flex;
+  height: 40px;
+  width: 40px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: none;
+  background: rgba(10, 12, 11, 0.9);
+  color: var(--chama-neon);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+}
+
+.chama-eta-badge {
+  position: absolute;
+  left: 50%;
+  top: 64px;
+  z-index: 1000;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: rgba(10, 12, 11, 0.95);
+  border: 1px solid rgba(57, 255, 106, 0.3);
+  padding: 8px 16px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: white;
+}
+
+.chama-eta-badge span {
+  color: var(--chama-neon);
+}
+
+.chama-bottom-sheet {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  max-height: 55vh;
+  overflow-y: auto;
+  border-radius: 24px 24px 0 0;
+  background: rgba(14, 18, 16, 0.98);
+  border-top: 1px solid rgba(57, 255, 106, 0.2);
+  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.5);
+}
+
+.chama-home {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--chama-bg);
+}
+
+.chama-shell-main {
+  min-height: 0;
+  padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+}
+
+.chama-shell-titlebar {
+  padding: 0.75rem 1rem 0;
+}
+
+.chama-shell-titlebar h1 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--chama-text);
+}
+
+.chama-shell-content {
+  padding: 1rem;
+}
+
+.chama-status-pill {
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid rgba(3, 17, 5, 0.35);
+  background: rgba(255, 255, 255, 0.22);
+  color: #031105;
+  font-size: 0.72rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.chama-status-pill--online {
+  background: rgba(255, 255, 255, 0.92);
+  color: #065f2a;
+}
+
+body.chama-web.pwa-driver .driver-home {
+  background: #f4faf6;
+}
+
+.driver-home-map {
+  background: #dbece2;
+}
+
+.driver-home-panel {
+  border-radius: 24px 24px 0 0;
+  background: #f4faf6;
+}
+
+.driver-search-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(20, 128, 64, 0.15);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  color: #06220f;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.driver-search-pill svg {
+  color: var(--chama-neon-dark);
+}
+
+.chama-app-frame {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+@media (min-width: 768px) {
+  body.chama-web.pwa-driver {
+    display: flex;
+    justify-content: center;
+  }
+
+  .chama-app-frame {
+    max-width: 430px;
+    border-left: 1px solid rgba(20, 128, 64, 0.15);
+    border-right: 1px solid rgba(20, 128, 64, 0.15);
+    box-shadow: 0 0 48px rgba(0, 0, 0, 0.2);
+  }
+
+  .pwa-tabbar {
+    max-width: calc(430px - 24px);
+  }
+}
+
+.location-gate {
+  min-height: calc(100vh - 160px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: linear-gradient(180deg, #e4f4ea 0%, #f4faf6 100%);
+}
+
+.location-gate-card {
+  width: min(100%, 360px);
+  background: #fff;
+  border-radius: 20px;
+  padding: 1.75rem 1.25rem;
+  text-align: center;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(20, 128, 64, 0.15);
+}
+
+.location-gate-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 1rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(57, 255, 106, 0.15);
+  color: var(--chama-neon-dark);
+}
+
+.location-gate-card h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.25rem;
+  color: #06220f;
+}
+
+.location-gate-card p {
+  margin: 0 0 1.25rem;
+  font-size: 0.9rem;
+  color: #3d5348;
+  line-height: 1.5;
+}
+
+.location-gate-btn {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.location-gate-logo {
+  width: 72px;
+  height: 72px;
+  border-radius: 18px;
+  object-fit: cover;
+  margin: 0 auto 0.75rem;
+  display: block;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.location-gate-app {
+  margin: 0 0 1rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--chama-neon-dark);
+  letter-spacing: 0.04em;
+}
+
+.location-gate-home {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  animation: locationGateIn 0.35s ease-out;
+}
+
+@keyframes locationGateIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.map-loading-placeholder {
+  background: linear-gradient(135deg, #dbece2, #c8e6d4);
+}

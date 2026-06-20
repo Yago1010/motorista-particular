@@ -52,8 +52,9 @@
         <div class="navbar-collapse collapse">
           <ul class="nav navbar-nav navbar-right">
             <li class="active"><a href="/">{{ trans('ui.home') }}</a></li>
-            <li><a href="<?php echo web_url(); ?>/user/signin">{{ trans('ui.login') }}</a></li>
-            <li><a href="<?php echo web_url(); ?>/user/signup">{{ trans('ui.signup') }}</a></li>
+            <li><a href="<?php echo chama_portal_url('rider'); ?>">App Passageiro</a></li>
+            <li><a href="<?php echo chama_portal_url('driver'); ?>">App Motorista</a></li>
+            <li><a href="<?php echo chama_portal_url('admin'); ?>">Admin</a></li>
             <li><a href="javascript:void(0)" style="padding-top:10px; padding-bottom:10px;">@include('partials.language-switcher')</a></li>
           </ul>
         </div>

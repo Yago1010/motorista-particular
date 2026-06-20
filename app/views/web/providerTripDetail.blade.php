@@ -1,91 +1,57 @@
-<td colspan="4">
-	<div class="row">
-		<div id="trip-map" class="col-lg-4">
-		<img width="250" height="250" src="{{ $map_url }}">
+<td colspan="8">
+	<div class="row chama-trip-detail">
+		<div id="trip-map" class="col-lg-4 col-md-5">
+			<img class="img-responsive chama-trip-map-img" src="{{ $map_url }}" alt="Mapa da corrida">
 		</div>
-		<div id="trip-info" class="col-lg-4">
-			<div class="col-lg-12">
-				<h2><?php echo $currency.'.'; ?> {{ $request->total - $request->ledger_payment}}</h2>
-				<p>{{ date('l, F d Y h:i A',strtotime($request->request_start_time)) }}</p>
-			</div>
-			<div class="col-lg-12">
-			<br>
-			</div>
-			<div class="col-lg-12">
-				<span class="glyphicon glyphicon-record" style="color:green" aria-hidden="true"></span>
-				<span>{{ date('h:i A',strtotime($start->created_at)) }}</span>
+		<div id="trip-info" class="col-lg-4 col-md-4">
+			<h3 class="chama-trip-price">{{ $currency }} {{ number_format((float) ($request->total - $request->ledger_payment), 2, ',', '.') }}</h3>
+			<p class="text-muted">{{ date('d/m/Y H:i', strtotime($request->request_start_time)) }}</p>
+			<div class="chama-trip-stop">
+				<span class="chama-trip-dot chama-trip-dot--origin"></span>
 				<div>
-					{{ $start_address }}
+					<small>Embarque · {{ date('H:i', strtotime($start->created_at)) }}</small>
+					<div>{{ $start_address }}</div>
 				</div>
 			</div>
-			<div class="col-lg-12">
-			<br>
-			</div>
-			<div class="col-lg-12">
-				<span class="glyphicon glyphicon-record" style="color:red" aria-hidden="true"></span>
-				<span>{{ date('h:i A',strtotime($end->created_at)) }}</span>
+			<div class="chama-trip-stop">
+				<span class="chama-trip-dot chama-trip-dot--dest"></span>
 				<div>
-					{{ $end_address }}
+					<small>Destino · {{ date('H:i', strtotime($end->created_at)) }}</small>
+					<div>{{ $end_address }}</div>
 				</div>
 			</div>
-				
+			<p><strong>Distância:</strong> {{ chama_format_distance_km($request->distance) }}</p>
 		</div>
-		<div id="trip-action" class="col-lg-4">
-		
-			<div class="col-lg-12">
-				<div class="col-lg-2">
-				</div>
-				<div class="col-lg-2">
-					<p><a href="profile.html"><img src="{{ $owner->picture }}" class="img-circle" width="50"></a></p>
-				</div>
-				<div class="col-lg-8">
-					<div class="col-lg-12">
-						<b>{{ $owner->first_name }} {{ $owner->last_name }}</b>
+		<div id="trip-action" class="col-lg-4 col-md-3">
+			<div class="chama-trip-passenger">
+				<img src="{{ $owner->picture ?: asset_url() . '/web/default_profile.png' }}" class="img-circle" width="56" alt="">
+				<div>
+					<strong>{{ $owner->first_name }} {{ $owner->last_name }}</strong>
+					<div class="chama-trip-rating">
+						@for ($i = 1; $i <= min(5, (int) round($rating)); $i++)
+						<i class="fa fa-star" style="color:#e8c547"></i>
+						@endfor
 					</div>
-					<div class="col-lg-12">
-					@for ($i = 1; $i <= $rating; $i++)
-      				<span><img src="{{ web_url() }}/web/star.png"></span>
-      				@endfor
-
-					</div>
+					@if($owner->phone)
+					<a href="{{ chama_whatsapp_url($owner->phone, 'Olá! Corrida #' . $request->id . ' — Chama no 12.') }}" target="_blank" rel="noopener" class="btn btn-sm chama-wa-btn" style="margin-top:8px;">
+						<i class="fa fa-whatsapp"></i> WhatsApp
+					</a>
+					@endif
 				</div>
-
 			</div>
-		
-			<div class="col-lg-12" style="top:5px;">
-				<center>
-					<b>FARE BREAKDOWN</b>
-					<table id="fare-table" style="position:relative;top:15px;">
-					<tr>
-						<td align="left">Base Fare</td>
-						<td align="right">{{ $request_services->base_price }}</td>
-					</tr>
-					<tr>
-						<td>Distance</td>
-						<td align="right">{{ $request_services->distance_cost }}</td>
-					</tr>
-					<tr style="border-bottom: #cccccc solid 1px">
-						<td>Time</td>
-						<td align="right">{{ $request_services->time_cost }}</td>
-					</tr>
-					<tr>
-						<td>Cost</td>
-						<td align="right">{{ $request_services->total }}</td>
-					</tr>
-					<tr style="border-bottom: #cccccc solid 1px">
-						<td>Promotion</td>
-						<td align="right">-{{ $request->ledger_payment }}</td>
-					</tr>
-					<tr>
-						<td><b>Charged</b></td>
-						<td align="right"><b><?php if($request->payment_mode == 1){ ?> {{ $request->total }} <?php }else{ ?>{{ $request->card_payment }} <?php } ?></b></td>
-					</tr>
+			<div class="chama-fare-breakdown">
+				<h5>Detalhe da tarifa</h5>
+				<table id="fare-table" class="table table-condensed">
+					<tr><td>Tarifa base</td><td class="text-right">{{ $currency }} {{ number_format((float) $request_services->base_price, 2, ',', '.') }}</td></tr>
+					<tr><td>Distância</td><td class="text-right">{{ $currency }} {{ number_format((float) $request_services->distance_cost, 2, ',', '.') }}</td></tr>
+					<tr><td>Tempo</td><td class="text-right">{{ $currency }} {{ number_format((float) $request_services->time_cost, 2, ',', '.') }}</td></tr>
+					<tr class="chama-fare-divider"><td>Subtotal</td><td class="text-right">{{ $currency }} {{ number_format((float) $request_services->total, 2, ',', '.') }}</td></tr>
+					@if($request->ledger_payment > 0)
+					<tr><td>Promoção</td><td class="text-right">- {{ $currency }} {{ number_format((float) $request->ledger_payment, 2, ',', '.') }}</td></tr>
+					@endif
+					<tr><td><strong>Cobrado</strong></td><td class="text-right"><strong>{{ $currency }} {{ number_format((float) ($request->payment_mode == 1 ? $request->total : $request->card_payment), 2, ',', '.') }}</strong></td></tr>
 				</table>
-				</center>
 			</div>
-			<div class="col-lg-12">
-				
-			</div>
-
 		</div>
+	</div>
 </td>

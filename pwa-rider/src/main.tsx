@@ -4,11 +4,9 @@ import App from './App'
 import 'leaflet/dist/leaflet.css'
 import './assets/main.css'
 
-if ('serviceWorker' in navigator) {
+if ('serviceWorker' in navigator && window.location.hostname !== 'localhost') {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/pwa-rider/sw.js').catch(() => {
-      // Ignore registration error in development
-    })
+    navigator.serviceWorker.register('/pwa-rider/sw.js', { scope: '/pwa-rider/' }).catch(() => {})
   })
 }
 

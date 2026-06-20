@@ -1,0 +1,17 @@
+{
+  "name": "uber-clone",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Uber Clone - PWAs e backend",
+  "scripts": {
+    "dev": "concurrently -n rider,driver -c blue,green \"npm run dev --prefix pwa-rider\" \"npm run dev --prefix pwa-motoristas\"",
+    "dev:rider": "npm run dev --prefix pwa-rider",
+    "dev:driver": "npm run dev --prefix pwa-motoristas",
+    "build": "npm run build --prefix pwa-rider && npm run build --prefix pwa-motoristas",
+    "build:rider": "npm run build --prefix pwa-rider",
+    "build:driver": "npm run build --prefix pwa-motoristas"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}

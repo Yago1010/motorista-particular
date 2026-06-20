@@ -38,7 +38,7 @@ export const useWalletStore = create<WalletState>((set) => ({
 
   fetchWallet: async () => {
     try {
-      const response = await api.get('/api/rider/wallet')
+      const response = await api.get('rider/wallet')
       set({
         balance: response.data.balance,
         pending: response.data.pending,
@@ -54,7 +54,7 @@ export const useWalletStore = create<WalletState>((set) => ({
   fetchTransactions: async (params = {}) => {
     set({ loadingTransactions: true })
     try {
-      const response = await api.get('/api/rider/wallet/transactions', { params })
+      const response = await api.get('rider/wallet/transactions', { params })
       set({ transactions: response.data, loadingTransactions: false })
     } catch (error) {
       console.error('Fetch transactions error:', error)
@@ -64,7 +64,7 @@ export const useWalletStore = create<WalletState>((set) => ({
 
   addPaymentMethod: async (data) => {
     try {
-      const response = await api.post('/api/rider/wallet/payment-methods', data)
+      const response = await api.post('rider/wallet/payment-methods', data)
       set((state) => ({ paymentMethods: [...state.paymentMethods, response.data] }))
       return { success: true, method: response.data }
     } catch (error: any) {
@@ -74,7 +74,7 @@ export const useWalletStore = create<WalletState>((set) => ({
 
   removePaymentMethod: async (methodId) => {
     try {
-      await api.delete(`/api/rider/wallet/payment-methods/${methodId}`)
+      await api.delete(`rider/wallet/payment-methods/${methodId}`)
       set((state) => ({ paymentMethods: state.paymentMethods.filter((m) => m.id !== methodId) }))
       return { success: true }
     } catch (error: any) {
@@ -84,7 +84,7 @@ export const useWalletStore = create<WalletState>((set) => ({
 
   setDefaultPaymentMethod: async (methodId) => {
     try {
-      await api.post(`/api/rider/wallet/payment-methods/${methodId}/default`)
+      await api.post(`rider/wallet/payment-methods/${methodId}/default`)
       set((state) => ({
         paymentMethods: state.paymentMethods.map((m) => ({ ...m, is_default: m.id === methodId })),
       }))
@@ -96,7 +96,7 @@ export const useWalletStore = create<WalletState>((set) => ({
 
   fetchPixKeys: async () => {
     try {
-      const response = await api.get('/api/rider/wallet/pix-keys')
+      const response = await api.get('rider/wallet/pix-keys')
       set({ pixKeys: response.data })
     } catch (error) {
       console.error('Fetch pix keys error:', error)
@@ -105,7 +105,7 @@ export const useWalletStore = create<WalletState>((set) => ({
 
   addPixKey: async (data) => {
     try {
-      const response = await api.post('/api/rider/wallet/pix-keys', data)
+      const response = await api.post('rider/wallet/pix-keys', data)
       set((state) => ({ pixKeys: [...state.pixKeys, response.data] }))
       return { success: true, key: response.data }
     } catch (error: any) {
@@ -115,7 +115,7 @@ export const useWalletStore = create<WalletState>((set) => ({
 
   removePixKey: async (keyId) => {
     try {
-      await api.delete(`/api/rider/wallet/pix-keys/${keyId}`)
+      await api.delete(`rider/wallet/pix-keys/${keyId}`)
       set((state) => ({ pixKeys: state.pixKeys.filter((k) => k.id !== keyId) }))
       return { success: true }
     } catch (error: any) {
@@ -125,7 +125,7 @@ export const useWalletStore = create<WalletState>((set) => ({
 
   setDefaultPixKey: async (keyId) => {
     try {
-      await api.post(`/api/rider/wallet/pix-keys/${keyId}/default`)
+      await api.post(`rider/wallet/pix-keys/${keyId}/default`)
       set((state) => ({
         pixKeys: state.pixKeys.map((k) => ({ ...k, is_default: k.id === keyId })),
       }))
@@ -137,7 +137,7 @@ export const useWalletStore = create<WalletState>((set) => ({
 
   addFundsViaPix: async (amount) => {
     try {
-      const response = await api.post('/api/rider/wallet/add-funds', { amount, method: 'pix' })
+      const response = await api.post('rider/wallet/add-funds', { amount, method: 'pix' })
       return { success: true, pixCode: response.data.pix_code, pixQrCode: response.data.pix_qrcode }
     } catch (error: any) {
       return { success: false, message: error.response?.data?.message || 'Erro ao gerar Pix' }
@@ -146,7 +146,7 @@ export const useWalletStore = create<WalletState>((set) => ({
 
   withdrawFunds: async (amount, pixKeyId) => {
     try {
-      const response = await api.post('/api/rider/wallet/withdraw', { amount, pix_key_id: pixKeyId })
+      const response = await api.post('rider/wallet/withdraw', { amount, pix_key_id: pixKeyId })
       return { success: true, withdraw: response.data }
     } catch (error: any) {
       return { success: false, message: error.response?.data?.message || 'Erro ao solicitar saque' }
@@ -155,7 +155,7 @@ export const useWalletStore = create<WalletState>((set) => ({
 
   payRide: async (rideId, paymentMethodId) => {
     try {
-      const response = await api.post(`/api/rider/rides/${rideId}/pay`, { payment_method_id: paymentMethodId })
+      const response = await api.post(`rider/rides/${rideId}/pay`, { payment_method: paymentMethodId })
       return { success: true, payment: response.data }
     } catch (error: any) {
       return { success: false, message: error.response?.data?.message || 'Erro ao pagar corrida' }
@@ -164,7 +164,7 @@ export const useWalletStore = create<WalletState>((set) => ({
 
   confirmCashPayment: async (rideId) => {
     try {
-      await api.post(`/api/rider/rides/${rideId}/confirm-cash-payment`)
+      await api.post(`rider/rides/${rideId}/confirm-cash-payment`)
       return { success: true }
     } catch (error: any) {
       return { success: false, message: error.response?.data?.message || 'Erro ao confirmar pagamento' }

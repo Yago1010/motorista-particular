@@ -20,13 +20,16 @@ const queryClient = new QueryClient({
 })
 
 function App() {
-  const { initAuth, loading, loadingMessage } = useAuthStore()
+  const { initAuth, loading, loadingMessage, authReady } = useAuthStore()
 
   useEffect(() => {
     initAuth()
+    if (useAuthStore.persist.hasHydrated()) {
+      useAuthStore.setState({ authReady: true })
+    }
   }, [initAuth])
 
-  if (loading) {
+  if (!authReady || loading) {
     return <LoadingOverlay message={loadingMessage || 'Carregando...'} />
   }
 

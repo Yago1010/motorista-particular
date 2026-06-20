@@ -1,31 +1,30 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth'
+
 import Layout from '@/components/Layout'
-import LoginView from '@/views/LoginView'
-import RegisterView from '@/views/RegisterView'
-import HomeView from '@/views/HomeView'
-import RideDetailView from '@/views/RideDetailView'
-import ChatView from '@/views/ChatView'
-import TripsView from '@/views/TripsView'
-import EarningsView from '@/views/EarningsView'
-import ProfileView from '@/views/ProfileView'
-import WalletView from '@/views/WalletView'
-import AvailabilityView from '@/views/AvailabilityView'
-import DocumentsView from '@/views/DocumentsView'
-import TaximeterView from '@/views/TaximeterView'
+
+import LoginView from '@/pages/LoginView'
+import RegisterView from '@/pages/RegisterView'
+import HomeView from '@/pages/HomeView'
+import RideDetailView from '@/pages/RideDetailView'
+import ChatView from '@/pages/ChatView'
+import TripsView from '@/pages/TripsView'
+import EarningsView from '@/pages/EarningsView'
+import ProfileView from '@/pages/ProfileView'
+import WalletView from '@/pages/WalletView'
+import AvailabilityView from '@/pages/AvailabilityView'
+import DocumentsView from '@/pages/DocumentsView'
+import TaximeterView from '@/pages/TaximeterView'
+
+import LoadingOverlay from '@/components/LoadingOverlay'
+import ErrorPage from '@/pages/ErrorPage'
+import NotFound from '@/pages/NotFound'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, loading } = useAuthStore()
+  const { isAuthenticated, authReady } = useAuthStore()
 
-  if (loading) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center bg-background z-50">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
-          <p className="text-muted-foreground">Carregando...</p>
-        </div>
-      </div>
-    )
+  if (!authReady) {
+    return <LoadingOverlay message="Carregando..." />
   }
 
   if (!isAuthenticated) {
@@ -36,17 +35,10 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, loading } = useAuthStore()
+  const { isAuthenticated, authReady } = useAuthStore()
 
-  if (loading) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center bg-background z-50">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
-          <p className="text-muted-foreground">Carregando...</p>
-        </div>
-      </div>
-    )
+  if (!authReady) {
+    return <LoadingOverlay message="Carregando..." />
   }
 
   if (isAuthenticated) {
@@ -64,6 +56,7 @@ export const router = createBrowserRouter([
         <Layout />
       </ProtectedRoute>
     ),
+    errorElement: <ErrorPage />,
     children: [
       { index: true, element: <HomeView /> },
       { path: 'ride/:id', element: <RideDetailView /> },
@@ -75,6 +68,7 @@ export const router = createBrowserRouter([
       { path: 'availability', element: <AvailabilityView /> },
       { path: 'documents', element: <DocumentsView /> },
       { path: 'taxmeter', element: <TaximeterView /> },
+      { path: '*', element: <NotFound /> },
     ],
   },
   {
@@ -84,6 +78,7 @@ export const router = createBrowserRouter([
         <LoginView />
       </PublicRoute>
     ),
+    errorElement: <ErrorPage />,
   },
   {
     path: '/register',
@@ -92,7 +87,8 @@ export const router = createBrowserRouter([
         <RegisterView />
       </PublicRoute>
     ),
+    errorElement: <ErrorPage />,
   },
-])
+], { basename: '/pwa-motoristas' })
 
 export default router

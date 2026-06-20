@@ -1,13 +1,22 @@
 @extends('layout')
 
 @section('content')
-
+@include('chama._flash')
+<?php
+    $rhToolbarLinks = array(
+        array('url' => URL::Route('AdminChamaUsers'), 'label' => 'Central Usuários', 'icon' => 'fa-users'),
+        array('url' => URL::Route('AdminUsers'), 'label' => 'Passageiros', 'icon' => 'fa-user'),
+        array('url' => URL::Route('AdminProviders'), 'label' => 'Motoristas', 'icon' => 'fa-car', 'active' => true),
+    );
+?>
+@include('partials.rh_toolbar')
+<div class="rh-admin-content">
 <div class="row">
     <div class="col-md-12 col-sm-12">
-        <a id="addpro" href="{{ URL::Route('AdminProviderAdd') }}"><button class="btn btn-flat btn-block btn-info" type="button">Add Provider</button></a>
-        <br/>
+        <a id="addpro" href="{{ URL::Route('AdminProviderAdd') }}"><button class="btn btn-primary btn-block rh-action-top" type="button"><i class="fa fa-plus"></i> Novo motorista</button></a>
     </div>
 </div>
+<div class="row rh-filter-row">
 <div class="col-md-6 col-sm-12">
     <div class="box box-danger">
         <form method="get" action="{{ URL::Route('/admin/sortpv') }}">
@@ -75,15 +84,16 @@
 
 </div>
 </div>
-<div class="col-md-12 col-sm-12">
-    <?php if (Session::get('che')) { ?>
-        <a id="providers" href="{{ URL::Route('AdminProviders') }}"><button class="col-md-12 col-sm-12 btn btn-warning" type="button">All {{ trans('customize.Provider');}}s</button></a><br/>
-    <?php }else{ ?>
-        <a id="currently" href="{{ URL::Route('AdminProviderCurrent') }}"><button class="col-md-12 col-sm-12 btn btn-warning"  type="button">Currently Providing</button></a><br/>
-    <?php } ?>
-<br><br>
 </div>
-<div class="box box-info tbl-box">
+</div>
+<div class="row">
+<div class="col-md-12 col-sm-12">
+<div class="box box-info tbl-box rh-table-panel">
+    <?php if (Session::get('che')) { ?>
+        <a id="providers" href="{{ URL::Route('AdminProviders') }}"><button class="btn btn-warning rh-action-top" type="button">Todos os motoristas</button></a>
+    <?php }else{ ?>
+        <a id="currently" href="{{ URL::Route('AdminProviderCurrent') }}"><button class="btn btn-warning rh-action-top" type="button">Motoristas online agora</button></a>
+    <?php } ?>
 <div align="left" id="paglink"><?php echo $walkers->appends(array('type'=>Session::get('type'), 'valu'=>Session::get('valu')))->links(); ?></div>
 <table class="table table-bordered">
             <tbody><tr>
@@ -159,7 +169,8 @@ else{
         </tbody></table>
          <div align="left" id="paglink"><?php echo $walkers->appends(array('type'=>Session::get('type'), 'valu'=>Session::get('valu')))->links(); ?></div>
 </div>
-
-
+</div>
+</div>
+</div>
 
 @stop

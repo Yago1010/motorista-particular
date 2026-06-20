@@ -75,29 +75,17 @@ self.addEventListener('notificationclick', (event) => {
   const action = event.action
 
   if (action === 'accept' && data.rideId) {
-    event.waitUntil(
-      fetch(`/api/driver/rides/${data.rideId}/accept`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      })
-    )
-    event.waitUntil(clients.openWindow(`/ride/${data.rideId}`))
+    event.waitUntil(clients.openWindow(`/pwa-motoristas/ride/${data.rideId}`))
     return
   }
 
   if (action === 'decline' && data.rideId) {
-    event.waitUntil(
-      fetch(`/api/driver/rides/${data.rideId}/decline`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      })
-    )
     return
   }
 
-  let url = '/'
+  let url = '/pwa-motoristas/'
   if (data.rideId) {
-    url = `/ride/${data.rideId}`
+    url = `/pwa-motoristas/ride/${data.rideId}`
   } else if (data.type === 'message') {
     url = `/chat/${data.rideId}`
   }

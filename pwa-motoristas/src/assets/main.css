@@ -1,11 +1,14 @@
+@import '../theme/pwa-chama.css';
+@import '../theme/chama-app.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --color-primary: #007bff;
-  --color-primary-dark: #0056b3;
-  --color-primary-light: #3399ff;
+  --color-primary: #28a745;
+  --color-primary-dark: #1e7e34;
+  --color-primary-light: #3dd65c;
   --color-success: #28a745;
   --color-success-dark: #1e7e34;
   --color-danger: #dc3545;

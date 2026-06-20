@@ -201,6 +201,13 @@ return array(
     ),
 
     'website_title' => 'Chama no 12',
+
+    /*
+    | URLs dos apps PWA (passageiro / motorista). Em dev usa Vite (:3000 / :3001).
+    | Em produção, após npm run build, use /pwa-rider/ e /pwa-motoristas/ no mesmo host.
+    */
+    'chama_rider_app_url' => getenv('CHAMA_RIDER_APP_URL') ?: null,
+    'chama_driver_app_url' => getenv('CHAMA_DRIVER_APP_URL') ?: null,
     /* Logo principal (Chama no 12) — ficheiro em /image/chama-no-12-web.jpeg */
     'default_logo' => '/image/chama-no-12-web.jpeg',
     /* false = ignora logo/favicon do painel "Theme" na BD (uploads) e usa sempre default_logo. */

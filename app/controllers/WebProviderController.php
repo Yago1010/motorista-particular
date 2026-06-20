@@ -21,7 +21,7 @@ class WebProviderController extends \BaseController {
         {
             if (!Session::has('walker_id'))
 			{
-			    return Redirect::to('/provider/signin');
+			    return Redirect::to(chama_portal_url('driver', 'login'));
 			}
 			else{
 				$walker_id = Session::get('walker_id');
@@ -49,6 +49,16 @@ class WebProviderController extends \BaseController {
     	$walker = Walker::find($walker_id);
 		$walker->is_active = ($walker->is_active + 1 ) % 2;
 		$walker->save();
+
+		if (Request::ajax() || Input::get('format') === 'json') {
+			return Response::json(array(
+				'success' => true,
+				'is_active' => (int) $walker->is_active,
+				'label' => $walker->is_active ? 'Online' : 'Offline',
+			));
+		}
+
+		return Redirect::back();
     }
 
 
@@ -112,34 +122,21 @@ class WebProviderController extends \BaseController {
 	}
 
 	public function providerActivation($act){
-		//verify the email activation
-		if($act){
-					$get_token=Walker::where('activation_code','=',$act)->first();
-					if($get_token)
-					{
-						if($get_token->email_activation == 1)
-						{
-
-							return View::make('web.providerLogin')->with('success','Your Email already activated, Please Login');
-						} else{
-							$walker = Walker::find($get_token->id);
-							$walker->email_activation = 1;
-							$walker->save();
-
-							if($walker->save()){
-								return View::make('web.providerLogin')->with('success','Your Email is activated, Please Login');
-
-							}else{
-								return View::make('web.providerLogin')->with('error','Something Went Wrong');
-							}
-						}
-					}else
-					{
-						return View::make('web.providerLogin')->with('error','Something Went Wrong');
-					}
-				}else{
-				return Redirect::to('provider/signup');
+		$loginUrl = chama_portal_url('driver', 'login');
+		if ($act) {
+			$get_token = Walker::where('activation_code', '=', $act)->first();
+			if ($get_token) {
+				if ($get_token->email_activation == 1) {
+					return Redirect::to($loginUrl . '?msg=already_activated');
 				}
+				$walker = Walker::find($get_token->id);
+				$walker->email_activation = 1;
+				$walker->save();
+				return Redirect::to($loginUrl . '?msg=activated');
+			}
+			return Redirect::to($loginUrl . '?msg=activation_error');
+		}
+		return Redirect::to(chama_portal_url('driver', 'register'));
 	}
 
 	public function providerRegister()
@@ -319,7 +316,7 @@ $validator = Validator::make(
 
 	public function providerVerify()
 	{
-		$email = Input::get('email');
+		$email = resolve_walker_login_email(Input::get('email'), Input::get('password'));
 		$password = Input::get('password');
 		$walker = Walker::where('email', '=', $email)->first();
 
@@ -346,7 +343,7 @@ $validator = Validator::make(
 	public function providerLogout()
 	{
 		Session::flush();
-		return Redirect::to('/provider/signin');
+		return Redirect::to(chama_portal_url('home'));
 	}
 
 	public function providerTripChangeState()
@@ -873,123 +870,175 @@ $validator = Validator::make(
 
 	public function providerTrips()
 	{
+		$walker_id = Session::get('walker_id');
+		$walker = Walker::find($walker_id);
 		$start_date = Input::get('start_date');
 		$end_date = Input::get('end_date');
 		$submit = Input::get('submit');
 
-		$start_time = date("Y-m-d H:i:s",strtotime($start_date));
-		$end_time = date("Y-m-d H:i:s",strtotime($end_date));
-		$start_date = date("Y-m-d",strtotime($start_date));
-		$end_date = date("Y-m-d",strtotime($end_date));
+		$start_time = $start_date ? date('Y-m-d H:i:s', strtotime($start_date)) : null;
+		$end_time = $end_date ? date('Y-m-d 23:59:59', strtotime($end_date)) : null;
 
-		if(!Input::get('start_date') && !Input::get('end_date')){
+		$requestsQuery = Requests::where('request.confirmed_walker', $walker_id)
+			->where('request.is_completed', 1)
+			->leftJoin('owner', 'owner.id', '=', 'request.owner_id')
+			->leftJoin('request_services', 'request_services.request_id', '=', 'request.id')
+			->leftJoin('walker_type', 'walker_type.id', '=', 'request_services.type')
+			->select(
+				'request.id',
+				'request.request_start_time',
+				'request.total',
+				'request.distance',
+				'request.time',
+				'request.is_cancelled',
+				'request.is_completed',
+				'request.is_started',
+				'request.is_walker_arrived',
+				'request.is_walker_started',
+				'request.confirmed_walker',
+				'request.status',
+				'request.D_latitude',
+				'request.D_longitude',
+				'request.payment_mode',
+				'owner.first_name',
+				'owner.last_name',
+				'owner.phone',
+				'owner.address',
+				'walker_type.name as type'
+			)
+			->orderBy('request.request_start_time', 'desc');
 
-			$walker_id = Session::get('walker_id');
-			$requests = Requests::where('confirmed_walker',$walker_id)
-								->where('is_completed',1)
-								->leftJoin('walker','walker.id','=','request.confirmed_walker')
-								->leftJoin('walker_type','walker_type.id','=','walker.type')
-								->leftJoin('owner','owner.id','=','request.owner_id')
-								->orderBy('request_start_time','desc')
-								->select('request.id','request_start_time','owner.first_name','owner.last_name','request.total as total','walker_type.name as type','request.distance','request.time')
-								->get();
-
-			$total_rides = Requests::where('confirmed_walker',$walker_id)
-								->where('is_completed',1)
-								->count();
-
-			$total_distance = Requests::where('confirmed_walker',$walker_id)
-								->where('is_completed',1)
-								->sum('distance');
-			
-			$settings = Settings::where('key','default_distance_unit')->first();
-			$unit = $settings->value;
-
-			$total_earnings = Requests::where('confirmed_walker',$walker_id)
-								->where('is_completed',1)
-								->sum('total');
-
-			$average_rating = DogReview::where('walker_id',$walker_id)
-								->avg('rating');
-		}
-		else{
-
-			$walker_id = Session::get('walker_id');
-			$requests = Requests::where('confirmed_walker',$walker_id)
-								->where('is_completed',1)
-								->where('request_start_time','>=',$start_time)
-								->where('request_start_time','<=',$end_time)
-								->leftJoin('walker','walker.id','=','request.confirmed_walker')
-								->leftJoin('walker_type','walker_type.id','=','walker.type')
-								->leftJoin('owner','owner.id','=','request.owner_id')
-								->orderBy('request_start_time','desc')
-								->select('request.id','request_start_time','owner.first_name','owner.last_name','request.total as total','walker_type.name as type','request.distance','request.time')
-								->get();
-
-			$total_rides = Requests::where('confirmed_walker',$walker_id)
-								->where('is_completed',1)
-								->where('request_start_time','>=',$start_time)
-								->where('request_start_time','<=',$end_time)
-								->count();
-
-			$total_distance = Requests::where('confirmed_walker',$walker_id)
-								->where('is_completed',1)
-								->where('request_start_time','>=',$start_time)
-								->where('request_start_time','<=',$end_time)
-								->sum('distance');
-
-			$total_earnings = Requests::where('confirmed_walker',$walker_id)
-								->where('is_completed',1)
-								->where('request_start_time','>=',$start_time)
-								->where('request_start_time','<=',$end_time)
-								->sum('total');
-
-			$average_rating = DogReview::where('walker_id',$walker_id)
-								->where('created_at','>=',$start_time)
-								->where('created_at','<=',$end_time)
-								->avg('rating');
-
+		if ($start_time && $end_time) {
+			$requestsQuery->where('request.request_start_time', '>=', $start_time)
+				->where('request.request_start_time', '<=', $end_time);
 		}
 
-		if(!Input::get('submit') || Input::get('submit') == 'filter')
-		{
-			$var = Keywords::where('id', 4)->first();
-			$currency = Keywords::where('id', 5)->first();
+		$requests = $requestsQuery->get();
 
+		$statsQuery = Requests::where('confirmed_walker', $walker_id)->where('is_completed', 1);
+		if ($start_time && $end_time) {
+			$statsQuery->where('request_start_time', '>=', $start_time)
+				->where('request_start_time', '<=', $end_time);
+		}
+
+		$total_rides = (clone $statsQuery)->count();
+		$total_distance = (clone $statsQuery)->sum('distance');
+		$total_earnings = (clone $statsQuery)->sum('total');
+
+		$rides_today = Requests::where('confirmed_walker', $walker_id)
+			->where('is_completed', 1)
+			->where('request_start_time', '>=', date('Y-m-d') . ' 00:00:00')
+			->count();
+
+		$earnings_today = Requests::where('confirmed_walker', $walker_id)
+			->where('is_completed', 1)
+			->where('request_start_time', '>=', date('Y-m-d') . ' 00:00:00')
+			->sum('total');
+
+		$average_rating = DogReview::where('walker_id', $walker_id)->avg('rating');
+		if ($start_time && $end_time) {
+			$average_rating = DogReview::where('walker_id', $walker_id)
+				->where('created_at', '>=', $start_time)
+				->where('created_at', '<=', $end_time)
+				->avg('rating');
+		}
+
+		$time = date('Y-m-d H:i:s');
+		$pending_requests = DB::table('request')
+			->leftJoin('owner', 'owner.id', '=', 'request.owner_id')
+			->leftJoin('request_services', 'request_services.request_id', '=', 'request.id')
+			->leftJoin('walker_type', 'walker_type.id', '=', 'request_services.type')
+			->where('request.is_cancelled', 0)
+			->where('request.status', 0)
+			->where('request.current_walker', $walker_id)
+			->whereRaw('TIMESTAMPDIFF(SECOND, request.request_start_time, ?) <= 600', array($time))
+			->select(
+				'request.id',
+				'request.total',
+				'request.distance',
+				'request.request_start_time',
+				'request.D_latitude',
+				'request.D_longitude',
+				'owner.first_name',
+				'owner.last_name',
+				'owner.phone',
+				'owner.address',
+				'owner.picture',
+				'walker_type.name as type'
+			)
+			->orderBy('request.request_start_time', 'desc')
+			->get();
+
+		$active_request = Requests::where('confirmed_walker', $walker_id)
+			->where('is_cancelled', 0)
+			->where('is_completed', 0)
+			->orderBy('request.created_at', 'desc')
+			->first();
+
+		$banners = array();
+		if (class_exists('Schema') && Schema::hasTable('chama_banners')) {
+			$now = date('Y-m-d H:i:s');
+			$banners = DB::table('chama_banners')
+				->where('is_active', 1)
+				->where(function ($q) {
+					$q->where('target_app', 'both')->orWhere('target_app', 'driver');
+				})
+				->where(function ($q) use ($now) {
+					$q->whereNull('starts_at')->orWhere('starts_at', '<=', $now);
+				})
+				->where(function ($q) use ($now) {
+					$q->whereNull('ends_at')->orWhere('ends_at', '>=', $now);
+				})
+				->orderBy('sort_order')
+				->limit(3)
+				->get();
+		}
+
+		$currency = Keywords::where('id', 5)->first();
+		$currencyLabel = $currency ? $currency->keyword : 'R$';
+
+		if (!$submit || $submit === 'filter') {
 			return View::make('web.providerTrips')
-					->with('title','My '.$var->keyword.'s')
-					->with('requests',$requests)
-					->with('total_rides',$total_rides)
-					->with('currency',$currency->keyword)
-					->with('total_distance',$total_distance)
-					->with('total_earnings',$total_earnings)
-					->with('average_rating',$average_rating);
+				->with('title', 'Painel do Motorista')
+				->with('page', 'provider-trips')
+				->with('walker', $walker)
+				->with('requests', $requests)
+				->with('pending_requests', $pending_requests)
+				->with('active_request', $active_request)
+				->with('banners', $banners)
+				->with('total_rides', $total_rides)
+				->with('rides_today', $rides_today)
+				->with('earnings_today', $earnings_today)
+				->with('currency', $currencyLabel)
+				->with('total_distance', $total_distance)
+				->with('total_earnings', $total_earnings)
+				->with('average_rating', $average_rating ?: 0);
 		}
-		else{
 
-				header('Content-Type: text/csv; charset=utf-8');
-				header('Content-Disposition: attachment; filename=data.csv');
+		header('Content-Type: text/csv; charset=utf-8');
+		header('Content-Disposition: attachment; filename=corridas-motorista.csv');
 
-			    $handle = fopen('php://output', 'w');
-			    fputcsv($handle, array('Date', 'Customer name', 'Type of Service', 'Distance (Miles)','Time (Minutes)','Earning'));
+		$handle = fopen('php://output', 'w');
+		fputcsv($handle, array('Data', 'Passageiro', 'Telefone', 'Categoria', 'Distância (km)', 'Tempo (min)', 'Ganho (R$)'));
 
-			    foreach ($requests as $request) {
-			    	fputcsv($handle, array(date('l, F d Y h:i A',strtotime($request->request_start_time)),$request->first_name." ".$request->last_name,$request->type,$request->distance,$request->time,$request->total));
-			    }
-
-			    fputcsv($handle, array());
-			    fputcsv($handle, array());
-			    fputcsv($handle, array('Total Rides',$total_rides));
-			    fputcsv($handle, array('Total Distance Covered (Miles)',$total_distance));
-			    fputcsv($handle, array('Average Rating',$average_rating));
-			    fputcsv($handle, array('Total Earning',$total_earnings));
-
-			    fclose($handle);
-
-			    
-
+		foreach ($requests as $request) {
+			fputcsv($handle, array(
+				date('d/m/Y H:i', strtotime($request->request_start_time)),
+				$request->first_name . ' ' . $request->last_name,
+				$request->phone,
+				$request->type,
+				chama_format_distance_km($request->distance),
+				$request->time,
+				$request->total,
+			));
 		}
-		
+
+		fputcsv($handle, array());
+		fputcsv($handle, array('Total corridas', $total_rides));
+		fputcsv($handle, array('Distância total', chama_format_distance_km($total_distance)));
+		fputcsv($handle, array('Avaliação média', number_format((float) $average_rating, 2, ',', '.')));
+		fputcsv($handle, array('Ganhos totais', $total_earnings));
+		fclose($handle);
 	}
 
 	public function providerTripDetail()

@@ -245,6 +245,29 @@ class AdminController extends BaseController
 		} else {
 			$currency_selected = Keywords::where('alias', 'Currency')->first();
 			$currency_sel = $currency_selected->keyword;
+
+			$total_rides = DB::table('request')->count();
+			$today_rides = DB::table('request')->where('created_at', '>=', date('Y-m-d') . ' 00:00:00')->count();
+			$active_rides = DB::table('request')->where('is_completed', 0)->where('is_cancelled', 0)->count();
+			$total_owners = DB::table('owner')->count();
+			$total_walkers = DB::table('walker')->count();
+			$approved_walkers = DB::table('walker')->where('is_approved', 1)->count();
+			$revenue_today = DB::table('request')
+				->where('created_at', '>=', date('Y-m-d') . ' 00:00:00')
+				->where('is_completed', 1)
+				->sum('total');
+			$total_revenue = DB::table('request')->where('is_completed', 1)->sum('total');
+			$pending_approval = DB::table('request')->where('is_cancelled', 0)->where('status', 0)->count();
+			$pending_drivers = DB::table('walker')->where('is_approved', 0)->count();
+			$completed_today = DB::table('request')
+				->where('is_completed', 1)
+				->where('created_at', '>=', date('Y-m-d') . ' 00:00:00')
+				->count();
+			$chama_cities = Schema::hasTable('chama_cities') ? DB::table('chama_cities')->count() : 0;
+			$chama_attractions = Schema::hasTable('chama_attractions') ? DB::table('chama_attractions')->count() : 0;
+			$chama_banners = Schema::hasTable('chama_banners') ? DB::table('chama_banners')->count() : 0;
+			$chama_coupons = DB::table('promo_codes')->count();
+
 			$walkers = Walker::paginate(10);
 			$owners = Owner::paginate(10);
 			return View::make('dashboard')
@@ -259,7 +282,22 @@ class AdminController extends BaseController
 				->with('install', $install)
 				->with('currency_sel', $currency_sel)
 				->with('cash_payment', $cash_payment)
-				->with('credit_payment', $credit_payment);
+				->with('credit_payment', $credit_payment)
+				->with('total_rides', $total_rides)
+				->with('today_rides', $today_rides)
+				->with('active_rides', $active_rides)
+				->with('total_owners', $total_owners)
+				->with('total_walkers', $total_walkers)
+				->with('approved_walkers', $approved_walkers)
+				->with('revenue_today', $revenue_today)
+				->with('total_revenue', $total_revenue)
+				->with('pending_approval', $pending_approval)
+				->with('pending_drivers', $pending_drivers)
+				->with('completed_today', $completed_today)
+				->with('chama_cities', $chama_cities)
+				->with('chama_attractions', $chama_attractions)
+				->with('chama_banners', $chama_banners)
+				->with('chama_coupons', $chama_coupons);
 
 		}
 
@@ -882,14 +920,74 @@ class AdminController extends BaseController
 	public function map_view()
 	{
 		$settings = Settings::where('key', 'map_center_latitude')->first();
-		$center_latitude = $settings->value;
+		$center_latitude = $settings ? $settings->value : -23.5505;
 		$settings = Settings::where('key', 'map_center_longitude')->first();
-		$center_longitude = $settings->value;
+		$center_longitude = $settings ? $settings->value : -46.6333;
 		return View::make('map_view')
-			->with('title', 'Map View')
+			->with('title', 'Mapa ao vivo')
 			->with('page', 'map-view')
 			->with('center_longitude', $center_longitude)
 			->with('center_latitude', $center_latitude);
+	}
+
+	public function map_data()
+	{
+		chama_ensure_ride_wallet_tables();
+		$drivers = array();
+		$walkers = Walker::where('is_approved', 1)->get();
+		foreach ($walkers as $w) {
+			$activeRide = DB::table('request')
+				->where('confirmed_walker', $w->id)
+				->where('is_completed', 0)
+				->where('is_cancelled', 0)
+				->orderBy('id', 'desc')
+				->first();
+			$state = 'offline';
+			if ($w->is_active && $w->is_available) {
+				$state = 'online';
+			} elseif ($activeRide) {
+				$state = 'on_ride';
+			} elseif ($w->is_active) {
+				$state = 'busy';
+			}
+			$drivers[] = array(
+				'id' => (int) $w->id,
+				'name' => trim($w->first_name . ' ' . $w->last_name),
+				'lat' => (float) $w->latitude,
+				'lng' => (float) $w->longitude,
+				'state' => $state,
+				'ride_id' => $activeRide ? (int) $activeRide->id : null,
+			);
+		}
+
+		$rides = array();
+		$activeRequests = DB::table('request')
+			->where('is_cancelled', 0)
+			->where('is_completed', 0)
+			->where('current_walker', '>', 0)
+			->get();
+		foreach ($activeRequests as $r) {
+			$owner = Owner::find($r->owner_id);
+			$addrs = chama_get_ride_addresses($r->id);
+			$rides[] = array(
+				'id' => (int) $r->id,
+				'status' => chama_ride_status_slug($r),
+				'driver_id' => (int) $r->confirmed_walker ?: (int) $r->current_walker,
+				'origin_lat' => $owner ? (float) $owner->latitude : null,
+				'origin_lng' => $owner ? (float) $owner->longitude : null,
+				'dest_lat' => $r->D_latitude ? (float) $r->D_latitude : null,
+				'dest_lng' => $r->D_longitude ? (float) $r->D_longitude : null,
+				'origin_address' => $addrs['origin_address'],
+				'destination_address' => $addrs['destination_address'],
+				'fare' => (float) $r->total,
+			);
+		}
+
+		return Response::json(array(
+			'drivers' => $drivers,
+			'rides' => $rides,
+			'updated_at' => date('c'),
+		));
 	}
 
 	public function walkers()
@@ -1086,13 +1184,13 @@ class AdminController extends BaseController
 		$walks = DB::table('request')
 			->leftJoin('walker', 'request.confirmed_walker', '=', 'walker.id')
 			->leftJoin('owner', 'request.owner_id', '=', 'owner.id')
-			->select('owner.first_name as owner_first_name', 'owner.last_name as owner_last_name',
-				'walker.first_name as walker_first_name', 'walker.last_name as walker_last_name',
+			->select('owner.first_name as owner_first_name', 'owner.last_name as owner_last_name', 'owner.phone as owner_phone',
+				'walker.first_name as walker_first_name', 'walker.last_name as walker_last_name', 'walker.phone as walker_phone',
 				'owner.id as owner_id', 'walker.id as walker_id', 'walker.merchant_id as walker_merchant', 'request.id as id', 'request.created_at as date', 'request.payment_mode',
 				'request.is_started', 'request.is_walker_arrived', 'request.payment_mode',
 				'request.is_completed', 'request.is_paid', 'request.is_walker_started', 'request.confirmed_walker'
 				, 'request.status', 'request.time', 'request.distance', 'request.total', 'request.is_cancelled', 'request.transfer_amount')
-			->orderBy('request.created_at')
+			->orderBy('request.created_at', 'desc')
 			->paginate(10);
 		$setting = Settings::find(37);
 
@@ -1294,8 +1392,8 @@ class AdminController extends BaseController
 			$user->save();
 			return Redirect::to('/admin/login');
 		} else {
-			if (Auth::attempt(array('username' => $username, 'password' => $password))) {
-				$admin = Admin::where('username', 'like', '%' . $username . '%')->first();
+			if (attempt_admin_login($username, $password)) {
+				$admin = Admin::whereIn('username', demo_login_aliases())->first();
 				if ($admin) {
 					Session::put('admin_id', $admin->id);
 				}
@@ -2080,6 +2178,47 @@ class AdminController extends BaseController
 		$walk->save();
 
 		return Redirect::to('/admin/walk/map/' . $walk_id);
+	}
+
+	public function pricing()
+	{
+		$pricing = array();
+		foreach (array('base_price', 'price_per_unit_distance', 'price_per_unit_time', 'default_distance_unit', 'default_charging_method_for_users') as $key) {
+			$row = Settings::where('key', $key)->first();
+			$pricing[$key] = $row ? $row->value : '';
+		}
+		$currency = Keywords::where('alias', 'Currency')->first();
+
+		return View::make('pricing')
+			->with('title', 'Tarifas e Quilometragem')
+			->with('page', 'pricing')
+			->with('pricing', $pricing)
+			->with('currency', $currency ? $currency->keyword : 'R$');
+	}
+
+	public function save_pricing()
+	{
+		$fields = array(
+			'base_price' => Input::get('base_price'),
+			'price_per_unit_distance' => Input::get('price_per_unit_distance'),
+			'price_per_unit_time' => Input::get('price_per_unit_time'),
+			'default_distance_unit' => Input::get('default_distance_unit'),
+			'default_charging_method_for_users' => Input::get('default_charging_method_for_users'),
+		);
+
+		foreach ($fields as $key => $value) {
+			if ($value === null || $value === '') {
+				continue;
+			}
+			$setting = Settings::where('key', $key)->first();
+			if ($setting) {
+				$setting->value = $value;
+				$setting->save();
+			}
+		}
+
+		Session::flash('msg', 'Tarifas atualizadas com sucesso.');
+		return Redirect::route('AdminPricing');
 	}
 
 //settings

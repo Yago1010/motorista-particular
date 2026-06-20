@@ -1,0 +1,14 @@
+{
+  "name": "uber-clone-chat-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Socket.io server for in-ride chat only",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "socket.io": "^4.7.0"
+  }
+}

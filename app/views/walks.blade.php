@@ -105,6 +105,7 @@
                                             <th>Amount</th>
                                             <th>Payment Mode</th>
                                             <th>Payment Status</th>
+                                            <th>WhatsApp</th>
                                             <th>Action</th>
                                         </tr>
                                         <?php $i =0; ?>
@@ -192,6 +193,22 @@
                                 ?>
                             </td>
                             <td>
+                                <?php
+                                $msgDriver = chama_ride_whatsapp_message($walk, 'driver');
+                                $msgOwner = chama_ride_whatsapp_message($walk, 'owner');
+                                $waDriver = !empty($walk->walker_phone) ? chama_whatsapp_url($walk->walker_phone, $msgDriver) : '';
+                                $waOwner = !empty($walk->owner_phone) ? chama_whatsapp_url($walk->owner_phone, $msgOwner) : '';
+                                ?>
+                                @if($waDriver)
+                                    <a class="chama-wa-btn" target="_blank" rel="noopener" href="{{ $waDriver }}"><i class="fa fa-whatsapp"></i> Motorista</a>
+                                @else
+                                    <a class="chama-wa-btn" target="_blank" rel="noopener" href="{{ URL::Route('AdminRequestChangeProvider', $walk->id) }}" style="background:#6b7280;"><i class="fa fa-user-plus"></i> Atribuir</a>
+                                @endif
+                                @if($waOwner)
+                                    <br><a class="chama-wa-btn" target="_blank" rel="noopener" href="{{ $waOwner }}" style="margin-top:4px;"><i class="fa fa-whatsapp"></i> Passageiro</a>
+                                @endif
+                            </td>
+                            <td>
                               <div class="dropdown">
                                   <button class="btn btn-flat btn-info dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown">
                                     Actions
@@ -200,7 +217,14 @@
                                   <ul class="dropdown-menu" role="menu" aria-labelledby="dropdownMenu1">
                                     
 
-                                    <li role="presentation"><a role="menuitem" id="map" tabindex="-1" href="{{ URL::Route('AdminRequestsMap', $walk->id) }}">View Map</a></li>
+                                    <li role="presentation"><a role="menuitem" id="map" tabindex="-1" href="{{ URL::Route('AdminRequestsMap', $walk->id) }}">Ver mapa</a></li>
+                                    @if($waDriver)
+                                    <li role="presentation"><a role="menuitem" target="_blank" rel="noopener" href="{{ $waDriver }}"><i class="fa fa-whatsapp"></i> WhatsApp motorista</a></li>
+                                    @endif
+                                    @if($waOwner)
+                                    <li role="presentation"><a role="menuitem" target="_blank" rel="noopener" href="{{ $waOwner }}"><i class="fa fa-whatsapp"></i> WhatsApp passageiro</a></li>
+                                    @endif
+                                    <li role="presentation"><a role="menuitem" tabindex="-1" href="{{ URL::Route('AdminRequestChangeProvider', $walk->id) }}">Atribuir motorista</a></li>
                                     @if($setting->value==1 && $walk->is_completed==1)
                                         <li role="presentation"><a role="menuitem" id="map" tabindex="-1" href="{{ URL::Route('AdminPayProvider', $walk->id) }}">Transfer Amount</a></li>
                                     @endif

@@ -69,127 +69,75 @@ $message3 = trans('admin.install_payment_missing');
 </div>
 <?php } } }?>
 
+<div class="rh-stat-grid">
+    <div class="rh-stat-card">
+        <div class="rh-stat-card-top">
+            <div class="rh-stat-icon rh-stat-icon--blue"><i class="fa fa-heartbeat"></i></div>
+            <span class="rh-stat-badge rh-stat-badge--live">Live</span>
+        </div>
+        <h2><?= isset($active_rides) ? $active_rides : 0 ?></h2>
+        <p>Corridas ativas</p>
+        <p style="margin-top:6px;font-size:0.8rem;"><?= isset($completed_today) ? $completed_today : 0 ?> concluídas hoje</p>
+    </div>
+    <div class="rh-stat-card">
+        <div class="rh-stat-card-top">
+            <div class="rh-stat-icon rh-stat-icon--orange"><i class="fa fa-clock-o"></i></div>
+            <span class="rh-stat-badge rh-stat-badge--warn">Atenção</span>
+        </div>
+        <h2><?= isset($pending_approval) ? $pending_approval : 0 ?></h2>
+        <p>Aguardando aprovação</p>
+        <p style="margin-top:6px;font-size:0.8rem;"><?= isset($pending_drivers) ? $pending_drivers : 0 ?> motoristas pendentes</p>
+    </div>
+    <div class="rh-stat-card">
+        <div class="rh-stat-card-top">
+            <div class="rh-stat-icon rh-stat-icon--green"><i class="fa fa-line-chart"></i></div>
+        </div>
+        <h2><?= $currency_sel ?> <?= number_format((float)(isset($total_revenue) ? $total_revenue : 0), 2, ',', '.') ?></h2>
+        <p>Receita total</p>
+        <p style="margin-top:6px;font-size:0.8rem;"><?= isset($total_rides) ? $total_rides : 0 ?> corridas no total</p>
+    </div>
+    <div class="rh-stat-card">
+        <div class="rh-stat-card-top">
+            <div class="rh-stat-icon rh-stat-icon--purple"><i class="fa fa-users"></i></div>
+        </div>
+        <h2><?= isset($total_owners) ? $total_owners : 0 ?></h2>
+        <p>Passageiros cadastrados</p>
+        <p style="margin-top:6px;font-size:0.8rem;"><?= isset($approved_walkers) ? $approved_walkers : 0 ?> motoristas aprovados</p>
+    </div>
+</div>
 
+<div class="rh-quick-row">
+    <a href="{{ URL::Route('AdminRequests') }}"><i class="fa fa-check-circle"></i> Aprovar corridas</a>
+    <a href="{{ URL::Route('AdminMapview') }}"><i class="fa fa-map-marker"></i> Mapa ao vivo</a>
+    <a href="{{ URL::Route('AdminChamaUsers') }}"><i class="fa fa-users"></i> Usuários</a>
+    <a href="{{ URL::Route('AdminPricing') }}"><i class="fa fa-calculator"></i> Tarifas / KM</a>
+    <a href="{{ URL::Route('AdminPromoCodes') }}"><i class="fa fa-gift"></i> Cupons</a>
+    <a href="{{ URL::Route('AdminChamaBanners') }}"><i class="fa fa-bullhorn"></i> Anúncios</a>
+</div>
 
-  <!--   summary start -->
-
-
-                            <div class="row">
-                        <div class="col-lg-4 col-xs-6">
-                            <!-- small box -->
-                            <div class="small-box bg-aqua">
-                                <div class="inner">
-                                    <h3>
-                                       <?= $completed_rides + $cancelled_rides ?>
-                                    </h3>
-                                    <p>
-                                        {{ trans('admin.dashboard_total_trips') }}
-                                    </p>
-                                </div>
-                                <div class="icon">
-                                    <?php $icon = Keywords::where('keyword','total_trip')->first(); ?>
-                                    <i class="fa"><?php $show = Icons::find($icon->alias); echo $show->icon_code; ?></i>
-                                </div>
-                              
-                            </div>
-                        </div><!-- ./col -->
-                        <div class="col-lg-4 col-xs-6">
-                            <!-- small box -->
-                            <div class="small-box bg-green">
-                                <div class="inner">
-                                    <h3>
-                                       <?= $completed_rides  ?>
-                                    </h3>
-                                    <p>
-                                        {{ trans('admin.dashboard_completed_trips') }}
-                                    </p>
-                                </div>
-                                <div class="icon">
-                                     <?php $icon = Keywords::where('keyword','completed_trip')->first(); ?>
-                                    <i class="fa"><?php $show = Icons::find($icon->alias); echo $show->icon_code; ?></i>
-                                </div>
-                                
-                            </div>
-                        </div><!-- ./col -->
-                        <div class="col-lg-4 col-xs-6">
-                            <!-- small box -->
-                            <div class="small-box bg-red">
-                                <div class="inner">
-                                    <h3>
-                                        <?= $cancelled_rides ?>
-                                    </h3>
-                                    <p>
-                                       {{ trans('admin.dashboard_cancelled_trips') }}
-                                    </p>
-                                </div>
-                                <div class="icon">
-                                     <?php $icon = Keywords::where('keyword','cancelled_trip')->first(); ?>
-                                    <i class="fa"><?php $show = Icons::find($icon->alias); echo $show->icon_code; ?></i>
-                                </div>
-                                
-                            </div>
-                        </div><!-- ./col -->
-                        <div class="col-lg-4 col-xs-6">
-                            <!-- small box -->
-                            <div class="small-box bg-purple">
-                                <div class="inner">
-                                    <h3>
-                                        <?= $currency_sel ?> <?= $credit_payment + $card_payment + $cash_payment ?>
-                                    </h3>
-                                    <p>
-                                        {{ trans('admin.dashboard_total_payment') }}
-                                    </p>
-                                </div>
-                                <div class="icon">
-                                     <?php $icon = Keywords::where('keyword','total_payment')->first(); ?>
-                                    <i class="fa"><?php $show = Icons::find($icon->alias); echo $show->icon_code; ?></i>
-                                </div>
-                                
-                            </div>
-                        </div><!-- ./col -->
-                         <div class="col-lg-4 col-xs-6">
-                            <!-- small box -->
-                            <div class="small-box bg-yellow">
-                                <div class="inner">
-                                    <h3>
-                                        <?= $currency_sel ?> <?= $card_payment?>
-                                    </h3>
-                                    <p>
-                                        {{ trans('admin.dashboard_card_payment') }}
-                                    </p>
-                                </div>
-                                <div class="icon">
-                                     <?php $icon = Keywords::where('keyword','card_payment')->first(); ?>
-                                    <i class="fa"><?php $show = Icons::find($icon->alias); echo $show->icon_code; ?></i>
-                                </div>
-                                
-                            </div>
-                        </div><!-- ./col -->
-                         <div class="col-lg-4 col-xs-6">
-                            <!-- small box -->
-                            <div class="small-box bg-maroon">
-                                <div class="inner">
-                                    <h3>
-                                        <?= $currency_sel ?> <?= $credit_payment ?>
-                                    </h3>
-                                    <p>
-                                        {{ trans('admin.dashboard_credit_payment') }}
-                                    </p>
-                                </div>
-                                <div class="icon">
-                                    <?php $icon = Keywords::where('keyword','credit_payment')->first(); ?>
-                                    <i class="fa"><?php $show = Icons::find($icon->alias); echo $show->icon_code; ?></i>
-                                </div>
-                              
-                            </div>
-                        </div><!-- ./col -->
-                    </div>
-
-
-
-         <!--  Summary end -->
-
-
+<p class="rh-section-label">Operação Chama</p>
+<div class="rh-module-grid">
+    <a href="{{ URL::Route('AdminChamaCities') }}" class="rh-module-card">
+        <i class="fa fa-building"></i>
+        <strong>Cidades</strong>
+        <span><?= isset($chama_cities) ? $chama_cities : 0 ?> cadastradas</span>
+    </a>
+    <a href="{{ URL::Route('AdminChamaUsers') }}" class="rh-module-card">
+        <i class="fa fa-users"></i>
+        <strong>Usuários</strong>
+        <span>Passageiros e motoristas</span>
+    </a>
+    <a href="{{ URL::Route('AdminChamaBanners') }}" class="rh-module-card">
+        <i class="fa fa-bullhorn"></i>
+        <strong>Anúncios</strong>
+        <span><?= isset($chama_banners) ? $chama_banners : 0 ?> campanhas ativas</span>
+    </a>
+    <a href="{{ URL::Route('AdminPromoCodes') }}" class="rh-module-card">
+        <i class="fa fa-gift"></i>
+        <strong>Cupons</strong>
+        <span><?= isset($chama_coupons) ? $chama_coupons : 0 ?> promoções</span>
+    </a>
+</div>
 
     <!-- filter start -->
 
@@ -381,8 +329,10 @@ $message3 = trans('admin.install_payment_missing');
   </script>
   <script type="text/javascript">
 $(document).ready(function(){
-        $("#myModal").modal('show');
-    });
+    <?php if(Session::has('notify') && !isset($_COOKIE['skipInstallation'])) { ?>
+    $("#myModal").modal('show');
+    <?php } ?>
+});
 </script>
 
 @stop

@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import api from '@/services/api'
-import socketService from '@/services/socket'
+import { clearRiderSession, syncRiderApiToken } from '@/utils/authSession'
 
 export interface RiderUser {
   id: number
@@ -19,8 +19,10 @@ interface AuthState {
   loading: boolean
   loadingMessage: string
   isAuthenticated: boolean
-  
+  authReady: boolean
+
   initAuth: () => Promise<void>
+  forceLogout: () => void
   login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>
   register: (data: any) => Promise<{ success: boolean; message?: string }>
   sendOtp: (phone: string) => Promise<{ success: boolean; message?: string }>
@@ -28,17 +30,7 @@ interface AuthState {
   verifyOtpAndRegister: (phone: string, otp: string, userData: any) => Promise<{ success: boolean; message?: string }>
   logout: () => Promise<void>
   updateLocation: (lat: number, lng: number) => Promise<void>
-  connectSocket: () => Promise<void>
 }
-
-// Socket handlers
-const handleRideAccepted = (data: any) => console.log('Ride accepted:', data)
-const handleDriverArrived = (data: any) => console.log('Driver arrived:', data)
-const handleRideStarted = (data: any) => console.log('Ride started:', data)
-const handleRideCompleted = (data: any) => console.log('Ride completed:', data)
-const handleRideCancelled = (data: any) => console.log('Ride cancelled:', data)
-const handleNewMessage = (data: any) => console.log('New message:', data)
-const handleDriverLocation = (data: any) => console.log('Driver location:', data)
 
 export const useAuthStore = create<AuthState>()(
   persist(
@@ -48,6 +40,7 @@ export const useAuthStore = create<AuthState>()(
       loading: false,
       loadingMessage: '',
       isAuthenticated: false,
+      authReady: false,
 
       initAuth: async () => {
         const savedToken = localStorage.getItem('rider_token')
@@ -56,21 +49,24 @@ export const useAuthStore = create<AuthState>()(
         if (savedToken && savedUser) {
           try {
             const userData = JSON.parse(savedUser)
+            syncRiderApiToken(savedToken)
             set({ token: savedToken, user: userData, isAuthenticated: true })
-            api.defaults.headers.common['Authorization'] = `Bearer ${savedToken}`
-            await get().connectSocket()
-          } catch (error) {
-            localStorage.removeItem('rider_token')
-            localStorage.removeItem('rider_user')
+          } catch {
+            clearRiderSession()
             set({ token: null, user: null, isAuthenticated: false })
           }
         }
       },
 
+      forceLogout: () => {
+        clearRiderSession()
+        set({ token: null, user: null, isAuthenticated: false, loading: false })
+      },
+
       login: async (email, password) => {
         set({ loading: true, loadingMessage: 'Entrando...' })
         try {
-          const response = await api.post('/api/rider/login', { email, password })
+          const response = await api.post('rider/login', { email, password })
           const { token: newToken, user: userData } = response.data
 
           set({
@@ -81,12 +77,20 @@ export const useAuthStore = create<AuthState>()(
           })
           localStorage.setItem('rider_token', newToken)
           localStorage.setItem('rider_user', JSON.stringify(userData))
-          api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`
+          syncRiderApiToken(newToken)
 
-          await get().connectSocket()
           return { success: true }
         } catch (error: any) {
           set({ loading: false })
+          const { isDemoRiderCredentials, buildDemoRiderSession } = await import('@/config/demoUsers')
+          if (isDemoRiderCredentials(email, password)) {
+            const session = buildDemoRiderSession()
+            set({ token: session.token, user: session.user, isAuthenticated: true })
+            localStorage.setItem('rider_token', session.token)
+            localStorage.setItem('rider_user', JSON.stringify(session.user))
+            syncRiderApiToken(session.token)
+            return { success: true }
+          }
           return { success: false, message: error.response?.data?.message || 'Erro ao entrar' }
         }
       },
@@ -94,7 +98,7 @@ export const useAuthStore = create<AuthState>()(
       register: async (data) => {
         set({ loading: true, loadingMessage: 'Criando conta...' })
         try {
-          const response = await api.post('/api/rider/register', data)
+          const response = await api.post('rider/register', data)
           const { token: newToken, user: userData } = response.data
 
           set({
@@ -105,9 +109,8 @@ export const useAuthStore = create<AuthState>()(
           })
           localStorage.setItem('rider_token', newToken)
           localStorage.setItem('rider_user', JSON.stringify(userData))
-          api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`
+          syncRiderApiToken(newToken)
 
-          await get().connectSocket()
           return { success: true }
         } catch (error: any) {
           set({ loading: false })
@@ -117,7 +120,7 @@ export const useAuthStore = create<AuthState>()(
 
       sendOtp: async (phone) => {
         try {
-          const response = await api.post('/api/rider/send-otp', { phone })
+          const response = await api.post('rider/send-otp', { phone })
           return { success: true, message: response.data.message }
         } catch (error: any) {
           return { success: false, message: error.response?.data?.message || 'Erro ao enviar código' }
@@ -126,7 +129,7 @@ export const useAuthStore = create<AuthState>()(
 
       verifyOtp: async (phone, otp) => {
         try {
-          const response = await api.post('/api/rider/verify-otp', { phone, otp })
+          const response = await api.post('rider/verify-otp', { phone, otp })
           const { token: newToken, user: userData } = response.data
 
           set({
@@ -136,9 +139,8 @@ export const useAuthStore = create<AuthState>()(
           })
           localStorage.setItem('rider_token', newToken)
           localStorage.setItem('rider_user', JSON.stringify(userData))
-          api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`
+          syncRiderApiToken(newToken)
 
-          await get().connectSocket()
           return { success: true }
         } catch (error: any) {
           return { success: false, message: error.response?.data?.message || 'Código inválido' }
@@ -147,7 +149,7 @@ export const useAuthStore = create<AuthState>()(
 
       verifyOtpAndRegister: async (phone, otp, userData) => {
         try {
-          const response = await api.post('/api/rider/verify-otp-register', { phone, otp, ...userData })
+          const response = await api.post('rider/verify-otp-register', { phone, otp, ...userData })
           const { token: newToken, user: userDataResponse } = response.data
 
           set({
@@ -157,9 +159,8 @@ export const useAuthStore = create<AuthState>()(
           })
           localStorage.setItem('rider_token', newToken)
           localStorage.setItem('rider_user', JSON.stringify(userDataResponse))
-          api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`
+          syncRiderApiToken(newToken)
 
-          await get().connectSocket()
           return { success: true }
         } catch (error: any) {
           return { success: false, message: error.response?.data?.message || 'Erro ao verificar código' }
@@ -169,14 +170,11 @@ export const useAuthStore = create<AuthState>()(
       logout: async () => {
         set({ loading: true, loadingMessage: 'Saindo...' })
         try {
-          await api.post('/api/rider/logout')
+          await api.post('rider/logout')
         } catch (error) {
           console.error('Logout error:', error)
         } finally {
-          localStorage.removeItem('rider_token')
-          localStorage.removeItem('rider_user')
-          delete api.defaults.headers.common['Authorization']
-          socketService.disconnect()
+          clearRiderSession()
           set({
             token: null,
             user: null,
@@ -186,27 +184,9 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      connectSocket: async () => {
-        const token = get().token
-        if (!token) return
-
-        try {
-          await socketService.connect(token)
-          socketService.on('ride:accepted', handleRideAccepted)
-          socketService.on('ride:driver_arrived', handleDriverArrived)
-          socketService.on('ride:started', handleRideStarted)
-          socketService.on('ride:completed', handleRideCompleted)
-          socketService.on('ride:cancelled', handleRideCancelled)
-          socketService.on('message:new', handleNewMessage)
-          socketService.on('driver:location', handleDriverLocation)
-        } catch (error) {
-          console.error('Socket connection error:', error)
-        }
-      },
-
       updateLocation: async (lat, lng) => {
         try {
-          await api.post('/api/rider/location', { latitude: lat, longitude: lng })
+          await api.post('rider/location', { latitude: lat, longitude: lng })
         } catch (error) {
           console.error('Update location error:', error)
         }
@@ -215,6 +195,13 @@ export const useAuthStore = create<AuthState>()(
     {
       name: 'rider-auth-storage',
       partialize: (state) => ({ token: state.token, user: state.user, isAuthenticated: state.isAuthenticated }),
+      onRehydrateStorage: () => (state) => {
+        if (state?.token) syncRiderApiToken(state.token)
+      },
     }
   )
 )
+
+useAuthStore.persist.onFinishHydration(() => {
+  useAuthStore.setState({ authReady: true })
+})

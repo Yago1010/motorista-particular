@@ -1,28 +1,16 @@
-'use client';
+import { CHAMA_LOGO_URL } from '@/config/brand'
 
 interface LoadingOverlayProps {
-  isVisible?: boolean
   message?: string
 }
 
-export function LoadingOverlay({ isVisible = true, message = 'Carregando...' }: LoadingOverlayProps) {
-  if (!isVisible) return null;
-
+export default function LoadingOverlay({ message }: LoadingOverlayProps) {
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-      role="status"
-      aria-live="polite"
-      aria-label={message}
-    >
-      <div className="bg-white rounded-2xl p-8 flex flex-col items-center gap-4 shadow-2xl max-w-sm w-full mx-4">
-        <div className="relative">
-          <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
-        </div>
-        <p className="text-gray-700 text-center font-medium text-base">{message}</p>
-      </div>
+    <div className="pwa-splash" style={{ flexDirection: 'column', gap: '1rem' }}>
+      <img src={CHAMA_LOGO_URL} alt="Chama no 12" className="pwa-splash-logo" />
+      <p style={{ color: '#031105', fontWeight: 700, fontSize: '0.95rem' }}>{message || 'Carregando...'}</p>
     </div>
-  );
+  )
 }
 
-export default LoadingOverlay
+export { LoadingOverlay }

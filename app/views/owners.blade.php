@@ -1,10 +1,21 @@
 @extends('layout')
 
 @section('content')
+@include('chama._flash')
+<?php
+    $rhToolbarLinks = array(
+        array('url' => URL::Route('AdminChamaUsers'), 'label' => 'Central Usuários', 'icon' => 'fa-users'),
+        array('url' => URL::Route('AdminUsers'), 'label' => 'Passageiros', 'icon' => 'fa-user', 'active' => true),
+        array('url' => URL::Route('AdminProviders'), 'label' => 'Motoristas', 'icon' => 'fa-car'),
+    );
+?>
+@include('partials.rh_toolbar')
 @if(Session::has('msg'))
-<div class="alert alert-success"><b><?php echo Session::get('msg');Session::put('msg',NULL); ?></b></div>
+<div class="rh-alert rh-alert--success"><i class="fa fa-check-circle"></i> <?php echo Session::get('msg'); Session::put('msg', NULL); ?></div>
 @endif
-<div class="col-md-6 col-sm-12">
+<div class="rh-admin-content">
+<div class="row rh-filter-row">
+                <div class="col-md-6 col-sm-12">
 
                     <div class="box box-danger">
 
@@ -94,7 +105,7 @@
 
 
 
-                <div class="box box-info tbl-box">
+                <div class="box box-info tbl-box rh-table-panel">
                 <div align="left" id="paglink"><?php echo $owners->appends(array('type'=>Session::get('type'), 'valu'=>Session::get('valu')))->links(); ?></div>
                 <table class="table table-bordered">
                                 <tbody>
@@ -163,8 +174,6 @@
 
 
                 </div>
-
-
-
+</div>
 
 @stop

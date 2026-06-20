@@ -18,7 +18,7 @@ export interface PendingRide {
 
 export interface Ride {
   id: string | number
-  status: 'pending' | 'accepted' | 'started' | 'arrived' | 'in_progress' | 'completed' | 'cancelled'
+  status: 'pending' | 'accepted' | 'pickup_arrived' | 'started' | 'arrived' | 'in_progress' | 'destination_arrived' | 'completed' | 'cancelled'
   origin_address?: string
   destination_address?: string
   pickup_address?: string
@@ -55,6 +55,10 @@ interface RidesState {
   declineRide: (rideId: string | number) => Promise<{ success: boolean; message?: string }>
   startRide: (rideId: string | number) => Promise<{ success: boolean; message?: string }>
   arriveRide: (rideId: string | number) => Promise<{ success: boolean; message?: string }>
+  arriveAtPickup: (rideId: string | number) => Promise<{ success: boolean; message?: string }>
+  arriveAtDestination: (rideId: string | number) => Promise<{ success: boolean; message?: string }>
+  ratePassenger: (rideId: string | number, rating: number, comment?: string) => Promise<{ success: boolean; message?: string }>
+  markMessagesAsRead: (rideId: string | number) => Promise<{ success: boolean }>
   completeRide: (rideId: string | number, data?: Record<string, unknown>) => Promise<{ success: boolean; message?: string }>
   cancelRide: (rideId: string | number, reason?: string) => Promise<{ success: boolean; message?: string }>
   fetchRide: (rideId: string | number) => Promise<Ride | null>
@@ -93,18 +97,17 @@ export const useRidesStore = create<RidesState>((set, get) => ({
   loading: false,
 
   fetchPendingRides: async () => {
-    set({ loading: true })
     try {
-      const response = await api.get('/api/driver/rides/pending')
-      set({ pendingRides: response.data?.rides || response.data || [], loading: false })
+      const response = await api.get('driver/rides/pending')
+      set({ pendingRides: response.data?.rides || [] })
     } catch {
-      set({ pendingRides: mockPendingRides, loading: false })
+      set({ pendingRides: [] })
     }
   },
 
   acceptRide: async (rideId) => {
     try {
-      const response = await api.post(`/api/driver/rides/${rideId}/accept`)
+      const response = await api.post(`driver/rides/${rideId}/accept`)
       const ride = response.data?.ride || response.data
       set((state) => ({
         pendingRides: state.pendingRides.filter((r) => r.id !== rideId),
@@ -112,34 +115,13 @@ export const useRidesStore = create<RidesState>((set, get) => ({
       }))
       return { success: true }
     } catch (error: any) {
-      const pending = get().pendingRides.find((r) => r.id === rideId)
-      if (pending) {
-        const ride: Ride = {
-          id: rideId,
-          status: 'accepted',
-          origin_address: pending.origin_address,
-          destination_address: pending.destination_address,
-          estimated_fare: pending.estimated_fare,
-          payment_method: pending.payment_method,
-          passenger_name: pending.passenger_name,
-          passenger_rating: pending.passenger_rating,
-          distance: pending.distance,
-          duration: pending.estimated_duration,
-          created_at: pending.created_at,
-        }
-        set((state) => ({
-          pendingRides: state.pendingRides.filter((r) => r.id !== rideId),
-          currentRide: ride,
-        }))
-        return { success: true }
-      }
       return { success: false, message: error.response?.data?.message || 'Erro ao aceitar corrida' }
     }
   },
 
   declineRide: async (rideId) => {
     try {
-      await api.post(`/api/driver/rides/${rideId}/decline`)
+      await api.post(`driver/rides/${rideId}/decline`)
     } catch {
       // fallback offline
     }
@@ -151,46 +133,67 @@ export const useRidesStore = create<RidesState>((set, get) => ({
 
   startRide: async (rideId) => {
     try {
-      await api.post(`/api/driver/rides/${rideId}/start`)
-    } catch {
-      // fallback
+      const response = await api.post(`driver/rides/${rideId}/start`)
+      const ride = response.data?.ride
+      const { currentRide } = get()
+      if (currentRide?.id == rideId) {
+        set({ currentRide: ride || { ...currentRide, status: 'in_progress' } })
+      }
+      return { success: true }
+    } catch (error: any) {
+      return { success: false, message: error.response?.data?.message || 'Erro ao iniciar corrida' }
     }
-    const { currentRide } = get()
-    if (currentRide?.id == rideId) {
-      set({ currentRide: { ...currentRide, status: 'started' } })
-    }
-    return { success: true }
   },
 
   arriveRide: async (rideId) => {
+    return get().arriveAtPickup(rideId)
+  },
+
+  arriveAtPickup: async (rideId) => {
     try {
-      await api.post(`/api/driver/rides/${rideId}/arrive`)
-    } catch {
-      // fallback
+      const response = await api.post(`driver/rides/${rideId}/arrive`)
+      const ride = response.data?.ride
+      const { currentRide } = get()
+      if (currentRide?.id == rideId) {
+        set({ currentRide: ride || { ...currentRide, status: 'pickup_arrived' } })
+      }
+      return { success: true }
+    } catch (error: any) {
+      return { success: false, message: error.response?.data?.message || 'Erro ao registrar chegada' }
     }
-    const { currentRide } = get()
-    if (currentRide?.id == rideId) {
-      set({ currentRide: { ...currentRide, status: 'arrived' } })
+  },
+
+  arriveAtDestination: async (rideId) => {
+    try {
+      const response = await api.post(`driver/rides/${rideId}/arrive-destination`)
+      const ride = response.data?.ride
+      const { currentRide } = get()
+      if (currentRide?.id == rideId) {
+        set({ currentRide: ride || { ...currentRide, status: 'destination_arrived' } })
+      }
+      return { success: true }
+    } catch (error: any) {
+      return { success: false, message: error.response?.data?.message || 'Erro ao registrar destino' }
     }
-    return { success: true }
   },
 
   completeRide: async (rideId, data = {}) => {
     try {
-      await api.post(`/api/driver/rides/${rideId}/complete`, data)
-    } catch {
-      // fallback
+      const response = await api.post(`driver/rides/${rideId}/complete`, data)
+      const ride = response.data?.ride
+      const { currentRide } = get()
+      if (currentRide?.id == rideId) {
+        set({ currentRide: ride || { ...currentRide, status: 'completed' } })
+      }
+      return { success: true }
+    } catch (error: any) {
+      return { success: false, message: error.response?.data?.message || 'Erro ao finalizar corrida' }
     }
-    const { currentRide } = get()
-    if (currentRide?.id == rideId) {
-      set({ currentRide: { ...currentRide, status: 'completed' } })
-    }
-    return { success: true }
   },
 
   cancelRide: async (rideId, reason) => {
     try {
-      await api.post(`/api/driver/rides/${rideId}/cancel`, { reason })
+      await api.post(`driver/rides/${rideId}/cancel`, { reason })
     } catch {
       // fallback
     }
@@ -200,13 +203,11 @@ export const useRidesStore = create<RidesState>((set, get) => ({
 
   fetchRide: async (rideId) => {
     try {
-      const response = await api.get(`/api/driver/rides/${rideId}`)
-      const ride = response.data
+      const response = await api.get(`driver/rides/${rideId}`)
+      const ride = response.data?.ride || response.data
       set({ currentRide: ride })
       return ride
     } catch {
-      const { currentRide } = get()
-      if (currentRide?.id == rideId) return currentRide
       return null
     }
   },
@@ -214,33 +215,34 @@ export const useRidesStore = create<RidesState>((set, get) => ({
   fetchRides: async () => {
     set({ loading: true })
     try {
-      const response = await api.get('/api/driver/rides/history')
-      set({ rides: response.data?.rides || response.data || [], loading: false })
+      const response = await api.get('driver/rides/history')
+      set({ rides: response.data?.rides || [], loading: false })
     } catch {
-      set({
-        rides: [
-          {
-            id: 1,
-            status: 'completed',
-            pickup_address: 'Shopping Center',
-            dropoff_address: 'Residencial Jardins',
-            pickup_lat: -23.55,
-            pickup_lng: -46.63,
-            dropoff_lat: -23.56,
-            dropoff_lng: -46.64,
-            price: 32.5,
-            passenger_name: 'Ana Silva',
-            created_at: new Date().toISOString(),
-          },
-        ],
-        loading: false,
-      })
+      set({ rides: [], loading: false })
+    }
+  },
+
+  ratePassenger: async (rideId, rating, comment) => {
+    try {
+      await api.post(`driver/rides/${rideId}/rate-passenger`, { rating, comment })
+    } catch {
+      // fallback
+    }
+    return { success: true }
+  },
+
+  markMessagesAsRead: async (rideId) => {
+    try {
+      await api.post(`driver/rides/${rideId}/messages/read`)
+      return { success: true }
+    } catch {
+      return { success: true }
     }
   },
 
   getMessages: async (rideId) => {
     try {
-      const response = await api.get(`/api/driver/rides/${rideId}/messages`)
+      const response = await api.get(`driver/rides/${rideId}/messages`)
       return { success: true, messages: response.data }
     } catch {
       return {
@@ -252,7 +254,7 @@ export const useRidesStore = create<RidesState>((set, get) => ({
 
   sendMessage: async (rideId, message) => {
     try {
-      const response = await api.post(`/api/driver/rides/${rideId}/messages`, { message })
+      const response = await api.post(`driver/rides/${rideId}/messages`, { message })
       return { success: true, message: response.data }
     } catch {
       return { success: true, message: { id: Date.now(), message, is_driver: true, created_at: new Date().toISOString() } }
